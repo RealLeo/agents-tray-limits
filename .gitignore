@@ -1,0 +1,34 @@
+# Release output
+/build/
+/dist/
+/*.zip
+/*.sha256
+
+# Compiled schemas and language artifacts
+/schemas/gschemas.compiled
+/locale/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# JavaScript
+node_modules/
+npm-debug.log*
+
+# Editors and operating systems
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Local visual-development output
+/art-source/
+/previews/
+/contact-sheets/

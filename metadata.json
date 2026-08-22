@@ -1,0 +1,9 @@
+{
+  "uuid": "agents-tray-limits@realleo",
+  "name": "Agents Tray Limits",
+  "description": "Shows ChatGPT and Codex usage limits and activity in the GNOME top panel.",
+  "version": 14,
+  "shell-version": ["45", "46", "47", "48", "49", "50"],
+  "settings-schema": "org.gnome.shell.extensions.agents-tray-limits",
+  "url": "https://github.com/RealLeo/agents-tray-limits"
+}

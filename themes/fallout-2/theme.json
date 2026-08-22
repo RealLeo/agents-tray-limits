@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "id": "fallout-2",
+  "name": "Fallout 2 — Pip-Boy 2000",
+  "description": "A hardware-inspired Pip-Boy 2000 layout with a control rail, CRT display, and full-color character art.",
+  "stylesheet": "theme.css",
+  "layout": "pipboy-2000",
+  "art": {
+    "good": "assets/animation/good/10.png",
+    "worried": "assets/animation/worried/10.png",
+    "critical": "assets/animation/critical/10.png",
+    "dead": "assets/animation/dead/10.png"
+  },
+  "panelArt": {
+    "good": "assets/panel/good.png",
+    "worried": "assets/panel/worried.png",
+    "critical": "assets/panel/critical.png",
+    "dead": "assets/panel/dead.png"
+  },
+  "frameAnimation": {
+    "intervalMs": 80,
+    "playback": "once",
+    "frames": {
+      "good": [
+        "assets/animation/good/1.png", "assets/animation/good/2.png",
+        "assets/animation/good/3.png", "assets/animation/good/4.png",
+        "assets/animation/good/5.png", "assets/animation/good/6.png",
+        "assets/animation/good/7.png", "assets/animation/good/8.png",
+        "assets/animation/good/9.png", "assets/animation/good/10.png"
+      ],
+      "worried": [
+        "assets/animation/worried/1.png", "assets/animation/worried/2.png",
+        "assets/animation/worried/3.png", "assets/animation/worried/4.png",
+        "assets/animation/worried/5.png", "assets/animation/worried/6.png",
+        "assets/animation/worried/7.png", "assets/animation/worried/8.png",
+        "assets/animation/worried/9.png", "assets/animation/worried/10.png"
+      ],
+      "critical": [
+        "assets/animation/critical/1.png", "assets/animation/critical/2.png",
+        "assets/animation/critical/3.png", "assets/animation/critical/4.png",
+        "assets/animation/critical/5.png", "assets/animation/critical/6.png",
+        "assets/animation/critical/7.png", "assets/animation/critical/8.png",
+        "assets/animation/critical/9.png", "assets/animation/critical/10.png"
+      ],
+      "dead": [
+        "assets/animation/dead/1.png", "assets/animation/dead/2.png",
+        "assets/animation/dead/3.png", "assets/animation/dead/4.png",
+        "assets/animation/dead/5.png", "assets/animation/dead/6.png",
+        "assets/animation/dead/7.png", "assets/animation/dead/8.png",
+        "assets/animation/dead/9.png", "assets/animation/dead/10.png"
+      ]
+    }
+  }
+}

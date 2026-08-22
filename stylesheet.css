@@ -1,0 +1,102 @@
+.agents-tray-limits-panel-box {
+  spacing: 6px;
+}
+
+.agents-tray-limits-panel-label {
+  font-weight: 600;
+  font-feature-settings: "tnum";
+}
+
+.agents-tray-limits-panel-label.warning {
+  color: #f6d32d;
+}
+
+.agents-tray-limits-panel-label.critical {
+  color: #ff7b82;
+}
+
+.agents-tray-limits-static-item {
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+.agents-tray-limits-header {
+  spacing: 3px;
+  min-width: 290px;
+  padding-top: 2px;
+  padding-bottom: 5px;
+}
+
+.agents-tray-limits-header-title {
+  font-weight: 700;
+  font-size: 1.05em;
+}
+
+.agents-tray-limits-muted {
+  opacity: 0.64;
+  font-size: 0.9em;
+}
+
+.agents-tray-limits-message,
+.agents-tray-limits-error {
+  max-width: 310px;
+}
+
+.agents-tray-limits-error {
+  font-weight: 600;
+}
+
+.agents-tray-limits-limit {
+  spacing: 5px;
+  min-width: 290px;
+}
+
+.agents-tray-limits-limit-top {
+  spacing: 12px;
+}
+
+.agents-tray-limits-limit-title {
+  font-weight: 600;
+}
+
+.agents-tray-limits-limit-value,
+.agents-tray-limits-stat-value {
+  font-weight: 700;
+  font-feature-settings: "tnum";
+}
+
+.agents-tray-limits-progress-track {
+  height: 6px;
+  min-width: 270px;
+  border-radius: 99px;
+  background-color: rgba(255, 255, 255, 0.14);
+}
+
+.agents-tray-limits-progress-fill {
+  height: 6px;
+  border-radius: 99px;
+  background-color: #62a0ea;
+}
+
+.agents-tray-limits-progress-fill.warning {
+  background-color: #f6d32d;
+}
+
+.agents-tray-limits-progress-fill.critical {
+  background-color: #ed333b;
+}
+
+.agents-tray-limits-critical-text {
+  color: #ff7b82;
+  font-weight: 600;
+  font-size: 0.9em;
+}
+
+.agents-tray-limits-stats {
+  spacing: 5px;
+  min-width: 290px;
+}
+
+.agents-tray-limits-stat-row {
+  spacing: 16px;
+}

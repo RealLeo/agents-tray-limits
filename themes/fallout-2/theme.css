@@ -1,0 +1,301 @@
+.agents-tray-limits-theme-fallout-2.popup-menu-boxpointer,
+.agents-tray-limits-theme-fallout-2 .popup-menu-boxpointer {
+  -arrow-background-color: transparent;
+  -arrow-border-color: transparent;
+  -arrow-border-width: 0;
+  -arrow-base: 0;
+  -arrow-rise: 0;
+}
+
+.agents-tray-limits-theme-fallout-2 .popup-menu-content {
+  padding: 0;
+  color: #5fbd51;
+  background-image: none;
+  background-color: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  font-family: monospace;
+}
+
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-pipboy-item,
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-pipboy-item:hover,
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-pipboy-item:focus {
+  padding: 0;
+  margin: 0;
+  background-color: transparent;
+}
+
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-pipboy-device {
+  width: 680px;
+  height: 520px;
+  padding: 0;
+  color: #5fbd51;
+  background-image: url("assets/ui/device-shell-v3.png");
+  background-size: 680px 520px;
+  background-repeat: no-repeat;
+  background-color: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-pipboy-badge {
+  padding: 0;
+  color: #c5b66d;
+  background-color: transparent;
+  border: 0;
+  border-radius: 0;
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.92);
+}
+
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-pipboy-art-frame {
+  width: 136px;
+  height: 116px;
+  background-color: rgba(12, 18, 13, 0.9);
+  border: 0;
+  border-radius: 2px;
+  box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.88);
+}
+
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-pipboy-art-frame.loading,
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-pipboy-art-frame.error {
+  background-color: rgba(2, 3, 3, 0.96);
+}
+
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-pipboy-art {
+  icon-shadow: 0 2px 2px rgba(0, 0, 0, 0.8);
+}
+
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-pipboy-art-status {
+  spacing: 0;
+  padding: 1px 2px 2px 2px;
+  background-color: rgba(0, 4, 2, 0.72);
+}
+
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-pipboy-offline {
+  color: #376f34;
+  font-size: 11px;
+  letter-spacing: 1px;
+}
+
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-pipboy-rail-state {
+  color: #6fd15d;
+  font-size: 9px;
+  font-weight: 800;
+  text-shadow: 0 0 3px rgba(82, 181, 74, 0.35);
+}
+
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-pipboy-rail-value {
+  color: #55ad49;
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-pipboy-buttons {
+  spacing: 0;
+}
+
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-pipboy-button {
+  min-height: 30px;
+  padding: 0 2px;
+  background-color: transparent;
+  border: 0;
+}
+
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-pipboy-button-content {
+  spacing: 4px;
+}
+
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-pipboy-button-lens {
+  width: 28px;
+  height: 28px;
+  background-image: url("assets/ui/red-button-v4.png");
+  background-size: 28px 28px;
+  background-repeat: no-repeat;
+}
+
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-pipboy-button-label {
+  padding: 2px 0;
+  color: #b3aa67;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.9);
+}
+
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-pipboy-button:hover .agents-tray-limits-pipboy-button-label,
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-pipboy-button:focus .agents-tray-limits-pipboy-button-label {
+  color: #e0d58f;
+  text-shadow: 0 0 3px rgba(208, 194, 120, 0.32);
+}
+
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-pipboy-button:hover .agents-tray-limits-pipboy-button-lens,
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-pipboy-button:focus .agents-tray-limits-pipboy-button-lens {
+  icon-shadow: 0 0 5px rgba(190, 42, 31, 0.58);
+}
+
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-pipboy-button:active .agents-tray-limits-pipboy-button-lens {
+  background-image: url("assets/ui/red-button-pressed-v4.png");
+}
+
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-pipboy-button:active .agents-tray-limits-pipboy-button-label {
+  color: #9f9765;
+}
+
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-pipboy-button:insensitive {
+  opacity: 0.45;
+}
+
+.agents-tray-limits-pipboy-tooltip {
+  padding: 5px 8px;
+  color: #d2c77e;
+  background-color: rgba(18, 20, 14, 0.96);
+  border: 1px solid #655f3d;
+  border-radius: 2px;
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.72);
+}
+
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-pipboy-screen-title {
+  padding: 0;
+  color: #3e873b;
+  font-size: 9px;
+  letter-spacing: 1px;
+}
+
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-pipboy-screen {
+  min-width: 0;
+  padding: 0;
+  background-color: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-pipboy-screen-content {
+  min-width: 0;
+  padding: 8px 18px 10px 14px;
+  spacing: 8px;
+  color: #5fbd51;
+}
+
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-pipboy-section {
+  margin-top: 4px;
+  padding: 4px 2px 3px 2px;
+  color: #74d561;
+  border-bottom: 1px solid #2f6f32;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-shadow: 0 0 3px rgba(86, 190, 78, 0.28);
+}
+
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-pipboy-state-row {
+  spacing: 14px;
+  padding: 6px 8px;
+  background-color: rgba(4, 14, 7, 0.66);
+  border: 1px solid #245c29;
+}
+
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-header {
+  min-width: 0;
+  spacing: 2px;
+  padding: 1px 0 4px 0;
+}
+
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-header-title,
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-limit-title,
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-limit-value,
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-stat-value {
+  color: #63c654;
+}
+
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-header-title {
+  color: #7bdc66;
+  font-size: 15px;
+  letter-spacing: 1px;
+  text-shadow: 0 0 3px rgba(93, 199, 82, 0.3);
+}
+
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-muted {
+  color: #40893d;
+  opacity: 1;
+}
+
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-message,
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-error {
+  color: #58af4b;
+}
+
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-error,
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-critical-text {
+  color: #c85a49;
+}
+
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-limit {
+  min-width: 0;
+  spacing: 5px;
+}
+
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-progress-track {
+  border: 1px solid #245d2a;
+  background-color: #071009;
+}
+
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-progress-fill {
+  background-color: #55ae49;
+}
+
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-progress-fill.warning {
+  background-color: #a68b51;
+}
+
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-progress-fill.critical {
+  background-color: #a84e3f;
+}
+
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-stats {
+  min-width: 0;
+}
+
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-theme-state,
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-theme-remaining {
+  color: #6fd15d;
+  font-weight: 800;
+}
+
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-theme-remaining {
+  font-feature-settings: "tnum";
+}
+
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-panel-label {
+  color: #67c958;
+  font-family: monospace;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.82);
+}
+
+.agents-tray-limits-theme-fallout-2.agents-tray-limits-status-good .agents-tray-limits-panel-label,
+.agents-tray-limits-theme-fallout-2.agents-tray-limits-status-good .agents-tray-limits-theme-state {
+  color: #68ca59;
+}
+
+.agents-tray-limits-theme-fallout-2.agents-tray-limits-status-worried .agents-tray-limits-panel-label,
+.agents-tray-limits-theme-fallout-2.agents-tray-limits-status-worried .agents-tray-limits-theme-state {
+  color: #c3a257;
+}
+
+.agents-tray-limits-theme-fallout-2.agents-tray-limits-status-critical .agents-tray-limits-panel-label,
+.agents-tray-limits-theme-fallout-2.agents-tray-limits-status-critical .agents-tray-limits-theme-state {
+  color: #c36b4f;
+}
+
+.agents-tray-limits-theme-fallout-2.agents-tray-limits-status-dead .agents-tray-limits-panel-label,
+.agents-tray-limits-theme-fallout-2.agents-tray-limits-status-dead .agents-tray-limits-theme-state {
+  color: #9d9c8d;
+}

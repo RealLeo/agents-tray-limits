@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "id": "fallout-3",
+  "name": "Fallout 3 — Pip-Boy 3000",
+  "description": "The earlier bright green CRT-inspired interface retained from version 3.",
+  "stylesheet": "theme.css",
+  "art": {
+    "good": "assets/good.png",
+    "worried": "assets/worried.png",
+    "critical": "assets/critical.png",
+    "dead": "assets/dead.png"
+  },
+  "animation": {
+    "intervalMs": 140,
+    "steps": [
+      {"x": 0, "y": 0, "opacity": 255, "scale": 1.00},
+      {"x": 0, "y": -1, "opacity": 246, "scale": 1.00},
+      {"x": 1, "y": -1, "opacity": 255, "scale": 1.01},
+      {"x": 1, "y": 0, "opacity": 250, "scale": 1.01},
+      {"x": 0, "y": 1, "opacity": 255, "scale": 1.00},
+      {"x": -1, "y": 1, "opacity": 244, "scale": 0.99},
+      {"x": -1, "y": 0, "opacity": 255, "scale": 0.99},
+      {"x": 0, "y": 0, "opacity": 250, "scale": 1.00}
+    ]
+  }
+}
