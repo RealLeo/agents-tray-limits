@@ -26,7 +26,7 @@ check:
 	python3 tools/check_css.py
 	python3 -m unittest discover -s tests -p 'test_*.py'
 	python3 tools/render_vault_boy_animation.py --statuses worried critical dead --verify themes/fallout-2/assets/animation >/dev/null
-	AGENTS_TRAY_RIG_CONFIG=perspective-preview-config-v6.json python3 tools/animation-rig/v16/verify_master_good.py >/dev/null
+	AGENTS_TRAY_RIG_CONFIG=perspective-preview-config-v6.json python3 tools/animation-rig/v16/verify_master_good.py --sprites-dir themes/fallout-2/assets/animation/good --motion-file tools/animation-rig/v16/fixtures/master-good-v6-motion.json >/dev/null
 
 pack: check
 	python3 tools/stage_release.py "$(STAGE_DIR)"

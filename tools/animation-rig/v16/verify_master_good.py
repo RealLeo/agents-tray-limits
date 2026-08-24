@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Validate the staged master-v3 good animation without touching runtime assets."""
+"""Validate good animation sprites and motion metadata."""
 
 from __future__ import annotations
 
+import argparse
 import json
 import math
 import os
@@ -15,8 +16,22 @@ ROOT = Path(__file__).resolve().parent
 CONFIG_NAME = os.environ.get("AGENTS_TRAY_RIG_CONFIG", "master-rig-config.json")
 CONFIG = json.loads((ROOT / CONFIG_NAME).read_text(encoding="utf-8"))
 RENDER_DIR = ROOT / CONFIG.get("renderDir", "render/master-good")
-SPRITES = RENDER_DIR / "sprites"
 MASTER = ROOT / CONFIG["master"]
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--sprites-dir",
+        type=Path,
+        help="Sprite directory to validate (defaults to the configured render output)",
+    )
+    parser.add_argument(
+        "--motion-file",
+        type=Path,
+        help="Motion metadata to validate (defaults to the configured render output)",
+    )
+    return parser.parse_args()
 
 
 def alpha_bbox(image: Image.Image) -> tuple[int, int, int, int]:
@@ -27,8 +42,11 @@ def alpha_bbox(image: Image.Image) -> tuple[int, int, int, int]:
 
 
 def main() -> None:
+    args = parse_args()
+    sprites = args.sprites_dir or RENDER_DIR / "sprites"
+    motion_file = args.motion_file or RENDER_DIR / "motion.json"
     expected = int(CONFIG["frames"])
-    paths = [SPRITES / f"{index}.png" for index in range(1, expected + 1)]
+    paths = [sprites / f"{index}.png" for index in range(1, expected + 1)]
     missing = [path for path in paths if not path.is_file()]
     if missing:
         raise ValueError(f"missing sprite frames: {missing}")
@@ -54,9 +72,9 @@ def main() -> None:
                         f"frame {index} changes stable pixels in {stable_box} by {maximum}"
                     )
 
-    motion = json.loads(
-        (RENDER_DIR / "motion.json").read_text(encoding="utf-8")
-    )
+    if not motion_file.is_file():
+        raise ValueError(f"missing motion metadata: {motion_file}")
+    motion = json.loads(motion_file.read_text(encoding="utf-8"))
     expected_duration = (expected - 1) * int(CONFIG["intervalMs"])
     if (
         motion["frames"] != expected
