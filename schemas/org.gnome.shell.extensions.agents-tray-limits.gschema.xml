@@ -9,12 +9,22 @@
     <key name="panel-display" type="s">
       <default>'remaining'</default>
       <summary>Panel value</summary>
-      <description>Show the remaining or used percentage of the primary Codex limit in the fixed panel format.</description>
+      <description>Show the remaining or used percentage of the selected profile's primary limit in the fixed panel format.</description>
     </key>
     <key name="codex-binary" type="s">
       <default>''</default>
       <summary>Codex CLI path</summary>
       <description>Leave empty to locate the codex executable automatically.</description>
+    </key>
+    <key name="profiles-json" type="s">
+      <default>''</default>
+      <summary>Agent profiles</summary>
+      <description>Versioned JSON document containing explicit Codex and Claude Code profiles.</description>
+    </key>
+    <key name="active-profile-id" type="s">
+      <default>''</default>
+      <summary>Active agent profile</summary>
+      <description>ID of the profile displayed in the panel and detailed menu.</description>
     </key>
     <key name="show-icon" type="b">
       <default>true</default>

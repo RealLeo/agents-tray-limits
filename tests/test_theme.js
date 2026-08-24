@@ -9,6 +9,7 @@ import {
     FrameAnimationSession,
     RepeatingTimer,
     StylesheetLifecycle,
+    frameAnimationInterval,
     formatPanelDuration,
     formatPanelReset,
     formatPanelValue,
@@ -98,6 +99,13 @@ assertEqual(primaryCodexRemaining({
 assertEqual(primaryCodexRemaining({rateLimits: {rateLimitsByLimitId: {
     spark: {primary: {usedPercent: 100}},
 }}}), null, 'Spark alone does not create a status');
+assertEqual(primaryCodexRemaining({rateLimits: {rateLimitsByLimitId: {
+    claude: {
+        limitId: 'claude',
+        primary: {usedPercent: 25, windowDurationMins: 300},
+        secondary: {usedPercent: 60, windowDurationMins: 10080},
+    },
+}}}), 75, 'Claude primary window drives the shared status model');
 assertEqual(formatPanelValue({rateLimits: {rateLimits: {
     limitId: 'codex',
     primary: {usedPercent: 20, resetsAt: PANEL_NOW + 5 * 3600 + 30 * 60},
@@ -222,9 +230,58 @@ assert(!validateThemeManifest({
     ...frameManifest,
     frameAnimation: {
         ...frameManifest.frameAnimation,
-        frames: {...tenFramePaths, good: [...tenFramePaths.good, 'frames/good/11.png']},
+        frames: {
+            ...tenFramePaths,
+            good: Array.from({length: 33}, (_value, index) => `frames/good/${index + 1}.png`),
+        },
     },
-}, 'test_theme').ok, 'more than ten frames accepted');
+}, 'test_theme').ok, 'more than thirty-two frames accepted');
+const thirtyTwoFramePaths = Object.fromEntries(
+    ['good', 'worried', 'critical', 'dead'].map(status => [
+        status,
+        Array.from({length: 32}, (_value, index) => `frames/${status}/${index + 1}.png`),
+    ])
+);
+assert(validateThemeManifest({
+    ...frameManifest,
+    frameAnimation: {
+        ...frameManifest.frameAnimation,
+        intervalMs: 20,
+        frames: thirtyTwoFramePaths,
+    },
+}, 'test_theme').ok, 'thirty-two frame animation at 20 ms rejected');
+assert(!validateThemeManifest({
+    ...frameManifest,
+    frameAnimation: {...frameManifest.frameAnimation, intervalMs: 19},
+}, 'test_theme').ok, 'frame interval below 20 ms accepted');
+const statusIntervalResult = validateThemeManifest({
+    ...frameManifest,
+    frameAnimation: {
+        ...frameManifest.frameAnimation,
+        intervalMs: 36,
+        intervalMsByStatus: {good: 28},
+    },
+}, 'test_theme');
+assert(statusIntervalResult.ok, 'valid per-status frame interval rejected');
+assertEqual(statusIntervalResult.manifest.frameAnimation.intervalMsByStatus.good, 28,
+    'per-status frame interval was not preserved');
+assertEqual(frameAnimationInterval(statusIntervalResult.manifest.frameAnimation, 'good'), 28,
+    'good interval override was not resolved');
+assertEqual(frameAnimationInterval(statusIntervalResult.manifest.frameAnimation, 'worried'), 36,
+    'missing status interval did not fall back to the base interval');
+for (const invalidOverrides of [
+    {good: 19},
+    {good: 28.5},
+    {unknown: 28},
+]) {
+    assert(!validateThemeManifest({
+        ...frameManifest,
+        frameAnimation: {
+            ...frameManifest.frameAnimation,
+            intervalMsByStatus: invalidOverrides,
+        },
+    }, 'test_theme').ok, `invalid per-status intervals accepted: ${JSON.stringify(invalidOverrides)}`);
+}
 for (const unsafe of ['../outside.png', '/outside.png']) {
     assert(!validateThemeManifest({
         ...frameManifest,
@@ -250,10 +307,14 @@ assert(!realCatalog.has('pipboy-classic'), 'legacy Pip-Boy theme must not be lis
 assertEqual(realCatalog.get('fallout-2').layout, 'pipboy-2000', 'Fallout 2 layout');
 assertEqual(realCatalog.get('fallout-2').animation, null,
     'Fallout 2 must not use transform animation');
-assertEqual(realCatalog.get('fallout-2').frameAnimation.intervalMs, 80,
+assertEqual(realCatalog.get('fallout-2').frameAnimation.intervalMs, 36,
     'Fallout 2 frame interval');
-for (const status of ['good', 'worried', 'critical', 'dead'])
-    assertEqual(realCatalog.get('fallout-2').frameAnimationPaths[status].length, 10,
+assertEqual(realCatalog.get('fallout-2').frameAnimation.intervalMsByStatus.good, 28,
+    'Fallout 2 good frame interval');
+assertEqual(realCatalog.get('fallout-2').frameAnimationPaths.good.length, 32,
+    'Fallout 2 good frame count');
+for (const status of ['worried', 'critical', 'dead'])
+    assertEqual(realCatalog.get('fallout-2').frameAnimationPaths[status].length, 16,
         `Fallout 2 ${status} frame count`);
 assertEqual(realCatalog.get('fallout-2').source, 'built-in', 'Fallout 2 source');
 assert(realCatalog.get('fallout-2').panelArtPaths.good.endsWith('/assets/panel/good.png'),
@@ -425,15 +486,15 @@ const frameAnimation = new FrameAnimationLoop(
     },
     index => appliedFrames.push(index)
 );
-frameAnimation.start(80, Array.from({length: 10}, (_value, index) => index));
-assertEqual(frameInterval, 80, 'frame animation interval');
+frameAnimation.start(50, Array.from({length: 16}, (_value, index) => index));
+assertEqual(frameInterval, 50, 'frame animation interval');
 assert(frameAnimation.running, 'frame animation did not start');
-for (let index = 1; index < 10; index++) {
+for (let index = 1; index < 16; index++) {
     const keepRunning = frameTimerCallback();
-    assertEqual(keepRunning, index < 9, `frame callback result ${index}`);
+    assertEqual(keepRunning, index < 15, `frame callback result ${index}`);
 }
-assertEqual(appliedFrames.join(','), '0,1,2,3,4,5,6,7,8,9',
-    'frame animation did not play 1→10 once');
+assertEqual(appliedFrames.join(','), '0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15',
+    'frame animation did not play 1→16 once');
 assert(!frameAnimation.running, 'completed frame animation still running');
 frameAnimation.stop();
 assertEqual(frameCancelled, 0, 'completed frame animation was cancelled twice');

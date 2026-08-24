@@ -5,6 +5,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -22,15 +23,32 @@ class HelperTests(unittest.TestCase):
         codex_binary: Path | None = FAKE_CODEX,
         environment: dict[str, str] | None = None,
         timeout: float = 8.0,
+        provider: str = "codex",
+        profile_id: str = "default-codex",
+        config_dir: Path | None = None,
+        extra_args: list[str] | None = None,
     ) -> tuple[subprocess.CompletedProcess[str], dict[str, object]]:
         child_environment = os.environ.copy()
         child_environment["FAKE_CODEX_SCENARIO"] = scenario
         if environment:
             child_environment.update(environment)
 
-        command = [sys.executable, os.fspath(HELPER), "--timeout", "2"]
+        command = [
+            sys.executable,
+            os.fspath(HELPER),
+            "--timeout",
+            "2",
+            "--provider",
+            provider,
+            "--profile-id",
+            profile_id,
+        ]
+        if config_dir is not None:
+            command.extend(["--config-dir", os.fspath(config_dir)])
         if codex_binary is not None:
             command.extend(["--codex-bin", os.fspath(codex_binary)])
+        if extra_args:
+            command.extend(extra_args)
 
         completed = subprocess.run(
             command,
@@ -47,9 +65,16 @@ class HelperTests(unittest.TestCase):
         completed, payload = self.run_helper()
         self.assertEqual(completed.returncode, 0)
         self.assertTrue(payload["ok"])
-        self.assertEqual(payload["helperVersion"], "2.0.0")
+        self.assertEqual(payload["helperVersion"], "3.0.0")
         self.assertEqual(payload["rateLimits"]["rateLimits"]["limitId"], "codex")
         self.assertEqual(payload["usage"]["summary"]["lifetimeTokens"], 1_234_567)
+
+    def test_default_codex_profile_does_not_inherit_codex_home(self) -> None:
+        completed, payload = self.run_helper(
+            environment={"CODEX_HOME": "/tmp/must-not-leak"},
+        )
+        self.assertEqual(completed.returncode, 0, payload)
+        self.assertIsNone(payload["serverInfo"]["codexHome"])
 
     def test_logged_out(self) -> None:
         completed, payload = self.run_helper("logged-out")
@@ -77,6 +102,283 @@ class HelperTests(unittest.TestCase):
         completed, payload = self.run_helper("timeout")
         self.assertEqual(completed.returncode, 2)
         self.assertEqual(payload["errorCode"], "timeout")
+
+    def test_explicit_codex_home_and_file_store_are_isolated(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            config_dir = Path(temporary) / "codex-work"
+            completed, payload = self.run_helper(
+                config_dir=config_dir,
+                profile_id="codex-work",
+                environment={"FAKE_CODEX_EMAIL": "work@example.com"},
+            )
+            self.assertEqual(completed.returncode, 0, payload)
+            self.assertEqual(payload["profileId"], "codex-work")
+            self.assertEqual(payload["provider"], "codex")
+            self.assertEqual(payload["account"]["email"], "work@example.com")
+            server = payload["serverInfo"]
+            self.assertEqual(server["codexHome"], os.fspath(config_dir))
+            self.assertEqual(server["argv"][-1], "app-server")
+            self.assertIn('cli_auth_credentials_store="file"', server["argv"])
+
+            second_dir = Path(temporary) / "codex-personal"
+            completed, second = self.run_helper(
+                config_dir=second_dir,
+                profile_id="codex-personal",
+                environment={"FAKE_CODEX_EMAIL": "personal@example.com"},
+            )
+            self.assertEqual(completed.returncode, 0, second)
+            self.assertEqual(second["account"]["email"], "personal@example.com")
+            self.assertEqual(second["serverInfo"]["codexHome"], os.fspath(second_dir))
+            self.assertNotEqual(server["codexHome"], second["serverInfo"]["codexHome"])
+
+    def test_claude_cache_is_normalized(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            cache = root / "cache" / "agents-tray-limits" / "claude" / "claude-work.json"
+            cache.parent.mkdir(parents=True)
+            now = int(time.time())
+            cache.write_text(json.dumps({
+                "version": "2.1.200",
+                "fetchedAt": now,
+                "rate_limits": {
+                    "five_hour": {"used_percentage": 25, "resets_at": now + 3600},
+                    "seven_day": {"used_percentage": 60, "resets_at": now + 86400},
+                },
+            }), encoding="utf-8")
+            completed, payload = self.run_helper(
+                provider="claude",
+                profile_id="claude-work",
+                codex_binary=None,
+                environment={"XDG_CACHE_HOME": os.fspath(root / "cache")},
+            )
+            self.assertEqual(completed.returncode, 0, payload)
+            bucket = payload["rateLimits"]["rateLimits"]
+            self.assertEqual(bucket["limitId"], "claude")
+            self.assertEqual(bucket["primary"]["usedPercent"], 25)
+            self.assertEqual(bucket["secondary"]["usedPercent"], 60)
+
+    def test_claude_cache_missing_and_stale(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            environment = {"XDG_CACHE_HOME": os.fspath(root / "cache")}
+            completed, payload = self.run_helper(
+                provider="claude",
+                profile_id="claude-personal",
+                codex_binary=None,
+                environment=environment,
+            )
+            self.assertEqual(completed.returncode, 2)
+            self.assertEqual(payload["errorCode"], "claude_cache_missing")
+
+            cache = root / "cache" / "agents-tray-limits" / "claude" / "claude-personal.json"
+            cache.parent.mkdir(parents=True)
+            cache.write_text(json.dumps({
+                "fetchedAt": int(time.time()) - 600,
+                "rate_limits": {
+                    "five_hour": {"used_percentage": 99, "resets_at": int(time.time()) - 1},
+                },
+            }), encoding="utf-8")
+            completed, payload = self.run_helper(
+                provider="claude",
+                profile_id="claude-personal",
+                codex_binary=None,
+                environment=environment,
+            )
+            self.assertEqual(completed.returncode, 2)
+            self.assertEqual(payload["errorCode"], "claude_limits_stale")
+
+    def test_claude_monitor_delegates_and_restores_statusline(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            config_dir = root / "claude-work"
+            config_dir.mkdir()
+            original = {
+                "type": "command",
+                "command": "printf original-status",
+                "padding": 2,
+            }
+            settings_path = config_dir / "settings.json"
+            settings_path.write_text(json.dumps({
+                "theme": "dark",
+                "statusLine": original,
+            }), encoding="utf-8")
+            environment = {"XDG_CACHE_HOME": os.fspath(root / "cache")}
+            completed, payload = self.run_helper(
+                provider="claude",
+                profile_id="claude-work",
+                config_dir=config_dir,
+                codex_binary=None,
+                environment=environment,
+                extra_args=["--install-claude-monitor"],
+            )
+            self.assertEqual(completed.returncode, 0, payload)
+            self.assertEqual(payload["monitorState"], "installed")
+            script = config_dir / "agents-tray-limits" / "statusline.py"
+            backup = config_dir / "agents-tray-limits" / "statusline-backup.json"
+            self.assertEqual(script.stat().st_mode & 0o777, 0o700)
+            self.assertEqual(backup.stat().st_mode & 0o777, 0o600)
+
+            now = int(time.time())
+            status_input = json.dumps({
+                "version": "2.1.200",
+                "rate_limits": {
+                    "five_hour": {
+                        "used_percentage": 12,
+                        "resets_at": now + 3600,
+                        "status": "allowed",
+                        "sensitive_future_field": "must-not-be-cached",
+                    },
+                    "seven_day": {"used_percentage": 34, "resets_at": now + 86400},
+                    "overage": {"enabled": True},
+                },
+                "workspace": {"current_dir": "/private/project"},
+            })
+            delegated = subprocess.run(
+                [sys.executable, os.fspath(script)],
+                input=status_input,
+                text=True,
+                capture_output=True,
+                check=False,
+                env={**os.environ, **environment},
+            )
+            self.assertEqual(delegated.returncode, 0, delegated.stderr)
+            self.assertEqual(delegated.stdout, "original-status")
+            cache = root / "cache" / "agents-tray-limits" / "claude" / "claude-work.json"
+            cached = json.loads(cache.read_text(encoding="utf-8"))
+            self.assertEqual(cached, {
+                "fetchedAt": cached["fetchedAt"],
+                "rate_limits": {
+                    "five_hour": {
+                        "used_percentage": 12.0,
+                        "resets_at": now + 3600,
+                    },
+                    "seven_day": {
+                        "used_percentage": 34.0,
+                        "resets_at": now + 86400,
+                    },
+                },
+                "version": "2.1.200",
+            })
+
+            completed, payload = self.run_helper(
+                provider="claude",
+                profile_id="claude-work",
+                config_dir=config_dir,
+                codex_binary=None,
+                environment=environment,
+                extra_args=["--restore-claude-monitor"],
+            )
+            self.assertEqual(completed.returncode, 0, payload)
+            restored = json.loads(settings_path.read_text(encoding="utf-8"))
+            self.assertEqual(restored, {"theme": "dark", "statusLine": original})
+            self.assertFalse(script.exists())
+
+    def test_claude_monitor_is_idempotent_and_conflict_safe(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            config_dir = Path(temporary) / "claude"
+            environment = {"XDG_CACHE_HOME": os.fspath(Path(temporary) / "cache")}
+            arguments = dict(
+                provider="claude",
+                profile_id="claude-profile",
+                config_dir=config_dir,
+                codex_binary=None,
+                environment=environment,
+                extra_args=["--install-claude-monitor"],
+            )
+            self.assertEqual(self.run_helper(**arguments)[0].returncode, 0)
+            self.assertEqual(self.run_helper(**arguments)[0].returncode, 0)
+            settings_path = config_dir / "settings.json"
+            settings = json.loads(settings_path.read_text(encoding="utf-8"))
+            settings["statusLine"]["padding"] = 9
+            settings_path.write_text(json.dumps(settings), encoding="utf-8")
+            completed, payload = self.run_helper(
+                provider="claude",
+                profile_id="claude-profile",
+                config_dir=config_dir,
+                codex_binary=None,
+                environment=environment,
+                extra_args=["--restore-claude-monitor"],
+            )
+            self.assertEqual(completed.returncode, 2)
+            self.assertEqual(payload["errorCode"], "claude_monitor_conflict")
+            current = json.loads(settings_path.read_text(encoding="utf-8"))
+            self.assertEqual(current["statusLine"]["padding"], 9)
+
+    def test_claude_monitor_without_original_can_restore_itself(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            config_dir = root / "claude"
+            environment = {"XDG_CACHE_HOME": os.fspath(root / "cache")}
+            completed, payload = self.run_helper(
+                provider="claude",
+                profile_id="claude-personal",
+                config_dir=config_dir,
+                codex_binary=None,
+                environment=environment,
+                extra_args=["--install-claude-monitor"],
+            )
+            self.assertEqual(completed.returncode, 0, payload)
+            managed = config_dir / "agents-tray-limits"
+            script = managed / "statusline.py"
+            backup = managed / "statusline-backup.json"
+            lock = managed / "statusline.lock"
+            self.assertEqual(managed.stat().st_mode & 0o777, 0o700)
+            self.assertEqual(script.stat().st_mode & 0o777, 0o700)
+            self.assertEqual(backup.stat().st_mode & 0o777, 0o600)
+            self.assertEqual(lock.stat().st_mode & 0o777, 0o600)
+
+            delegated = subprocess.run(
+                [sys.executable, os.fspath(script)],
+                input=json.dumps({"version": "2.1", "rate_limits": None}),
+                text=True,
+                capture_output=True,
+                check=False,
+                env={**os.environ, **environment},
+            )
+            self.assertEqual(delegated.returncode, 0, delegated.stderr)
+            cache = root / "cache" / "agents-tray-limits" / "claude" / "claude-personal.json"
+            self.assertEqual(cache.stat().st_mode & 0o777, 0o600)
+            self.assertEqual(json.loads(cache.read_text(encoding="utf-8"))["rate_limits"], {})
+            completed, payload = self.run_helper(
+                provider="claude",
+                profile_id="claude-personal",
+                codex_binary=None,
+                environment=environment,
+            )
+            self.assertEqual(completed.returncode, 2)
+            self.assertEqual(payload["errorCode"], "claude_limits_unavailable")
+
+            restored = subprocess.run(
+                [sys.executable, os.fspath(script), "--restore"],
+                text=True,
+                capture_output=True,
+                check=False,
+                env={**os.environ, **environment},
+            )
+            self.assertEqual(restored.returncode, 0, restored.stderr)
+            self.assertEqual(
+                json.loads((config_dir / "settings.json").read_text(encoding="utf-8")),
+                {},
+            )
+            self.assertFalse(script.exists())
+            self.assertFalse(cache.exists())
+
+    def test_invalid_claude_settings_are_not_overwritten(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            config_dir = Path(temporary) / "claude"
+            config_dir.mkdir()
+            settings_path = config_dir / "settings.json"
+            settings_path.write_text("{broken", encoding="utf-8")
+            completed, payload = self.run_helper(
+                provider="claude",
+                profile_id="claude-profile",
+                config_dir=config_dir,
+                codex_binary=None,
+                extra_args=["--install-claude-monitor"],
+            )
+            self.assertEqual(completed.returncode, 2)
+            self.assertEqual(payload["errorCode"], "claude_settings_invalid")
+            self.assertEqual(settings_path.read_text(encoding="utf-8"), "{broken")
 
     def test_nvm_launcher_uses_adjacent_node_with_gnome_path(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_home:

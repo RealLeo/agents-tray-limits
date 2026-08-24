@@ -6,12 +6,12 @@ Thank you for helping improve Agents Tray Limits.
 
 - Search existing issues and pull requests before opening a duplicate.
 - Use an issue to discuss changes that alter behavior, settings, theme manifests, dependencies, or supported GNOME versions.
-- Never include credentials, Codex authentication files, access tokens, private account data, or unredacted diagnostic output.
+- Never include credentials, Codex authentication files, Claude credential files, access tokens, private account data, or unredacted diagnostic output.
 - Do not contribute copyrighted characters, logos, screenshots, music, or other assets unless you have the rights and can document the applicable license.
 
 ## Development setup
 
-Install Python 3, Node.js, GJS, GLib schema tools, `zip`, and `unzip`, then clone the repository:
+Install Python 3 with Pillow, Node.js, GJS, GLib schema tools, `zip`, and `unzip`, then clone the repository:
 
 ```bash
 git clone https://github.com/RealLeo/agents-tray-limits.git
@@ -40,13 +40,15 @@ English is the canonical catalog and fallback. When adding or changing a message
 3. Preserve all interpolation placeholders exactly in every language.
 4. Run the catalog completeness and formatting tests through `make check`.
 
-Do not translate product names such as ChatGPT, Codex, or `PIP-BOY 2000`. The physical Pip-Boy action labels remain `REFRESH`, `CODEX`, `SETTINGS`, and `CLOSE`; their tooltips and accessibility labels are translated.
+Do not translate product names such as ChatGPT, Codex, Claude Code, or `PIP-BOY 2000`. The physical Pip-Boy provider action is context-sensitive (`CODEX` or `CLAUDE`); its tooltip and the other action accessibility labels are translated.
 
 ### Themes and assets
 
 Custom themes should use original or properly licensed assets. Include source and licensing information for every contributed asset. A pull request may be rejected if asset rights are unclear.
 
 The `classic` ID is reserved and cannot be overridden by a user theme. Avoid extending manifest schema version 1 unless a behavior cannot be represented safely by the existing declarative fields.
+
+The bundled Fallout 2 animation is generated from the layered source in `tools/animation-rig/`. Change its rig configuration or renderer and regenerate all runtime frames together; do not hand-edit individual frames or replace them with separately generated images.
 
 ## Tests
 

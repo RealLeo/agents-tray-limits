@@ -6,10 +6,10 @@
   "stylesheet": "theme.css",
   "layout": "pipboy-2000",
   "art": {
-    "good": "assets/animation/good/10.png",
-    "worried": "assets/animation/worried/10.png",
-    "critical": "assets/animation/critical/10.png",
-    "dead": "assets/animation/dead/10.png"
+    "good": "assets/animation/good/32.png",
+    "worried": "assets/animation/worried/16.png",
+    "critical": "assets/animation/critical/16.png",
+    "dead": "assets/animation/dead/16.png"
   },
   "panelArt": {
     "good": "assets/panel/good.png",
@@ -18,7 +18,8 @@
     "dead": "assets/panel/dead.png"
   },
   "frameAnimation": {
-    "intervalMs": 80,
+    "intervalMs": 36,
+    "intervalMsByStatus": {"good": 28},
     "playback": "once",
     "frames": {
       "good": [
@@ -26,28 +27,48 @@
         "assets/animation/good/3.png", "assets/animation/good/4.png",
         "assets/animation/good/5.png", "assets/animation/good/6.png",
         "assets/animation/good/7.png", "assets/animation/good/8.png",
-        "assets/animation/good/9.png", "assets/animation/good/10.png"
+        "assets/animation/good/9.png", "assets/animation/good/10.png",
+        "assets/animation/good/11.png", "assets/animation/good/12.png",
+        "assets/animation/good/13.png", "assets/animation/good/14.png",
+        "assets/animation/good/15.png", "assets/animation/good/16.png",
+        "assets/animation/good/17.png", "assets/animation/good/18.png",
+        "assets/animation/good/19.png", "assets/animation/good/20.png",
+        "assets/animation/good/21.png", "assets/animation/good/22.png",
+        "assets/animation/good/23.png", "assets/animation/good/24.png",
+        "assets/animation/good/25.png", "assets/animation/good/26.png",
+        "assets/animation/good/27.png", "assets/animation/good/28.png",
+        "assets/animation/good/29.png", "assets/animation/good/30.png",
+        "assets/animation/good/31.png", "assets/animation/good/32.png"
       ],
       "worried": [
         "assets/animation/worried/1.png", "assets/animation/worried/2.png",
         "assets/animation/worried/3.png", "assets/animation/worried/4.png",
         "assets/animation/worried/5.png", "assets/animation/worried/6.png",
         "assets/animation/worried/7.png", "assets/animation/worried/8.png",
-        "assets/animation/worried/9.png", "assets/animation/worried/10.png"
+        "assets/animation/worried/9.png", "assets/animation/worried/10.png",
+        "assets/animation/worried/11.png", "assets/animation/worried/12.png",
+        "assets/animation/worried/13.png", "assets/animation/worried/14.png",
+        "assets/animation/worried/15.png", "assets/animation/worried/16.png"
       ],
       "critical": [
         "assets/animation/critical/1.png", "assets/animation/critical/2.png",
         "assets/animation/critical/3.png", "assets/animation/critical/4.png",
         "assets/animation/critical/5.png", "assets/animation/critical/6.png",
         "assets/animation/critical/7.png", "assets/animation/critical/8.png",
-        "assets/animation/critical/9.png", "assets/animation/critical/10.png"
+        "assets/animation/critical/9.png", "assets/animation/critical/10.png",
+        "assets/animation/critical/11.png", "assets/animation/critical/12.png",
+        "assets/animation/critical/13.png", "assets/animation/critical/14.png",
+        "assets/animation/critical/15.png", "assets/animation/critical/16.png"
       ],
       "dead": [
         "assets/animation/dead/1.png", "assets/animation/dead/2.png",
         "assets/animation/dead/3.png", "assets/animation/dead/4.png",
         "assets/animation/dead/5.png", "assets/animation/dead/6.png",
         "assets/animation/dead/7.png", "assets/animation/dead/8.png",
-        "assets/animation/dead/9.png", "assets/animation/dead/10.png"
+        "assets/animation/dead/9.png", "assets/animation/dead/10.png",
+        "assets/animation/dead/11.png", "assets/animation/dead/12.png",
+        "assets/animation/dead/13.png", "assets/animation/dead/14.png",
+        "assets/animation/dead/15.png", "assets/animation/dead/16.png"
       ]
     }
   }

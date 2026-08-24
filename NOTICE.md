@@ -14,6 +14,8 @@ The MIT License in this repository does **not** apply to raster artwork in:
 
 - `themes/fallout-2/assets/`
 - `themes/fallout-3/assets/`
+- `tools/animation-rig/`
+- `tools/blender-rig/`
 
 These images include or are derived from Fallout, Pip-Boy, and Vault Boy visual material. Fallout, Pip-Boy, Vault Boy, and related names, characters, and visual properties belong to their respective rights holders. This project is unofficial and is not affiliated with, endorsed by, or sponsored by those rights holders.
 
@@ -23,4 +25,4 @@ Anyone publishing or redistributing a source archive or binary package containin
 
 ## Third-party product names
 
-ChatGPT, Codex, OpenAI, GNOME, Fallout, Pip-Boy, Vault Boy, Bethesda Softworks, ZeniMax Media, and other names may be trademarks of their respective owners. They are used only to identify compatibility, data sources, or visual inspiration. Their use does not imply endorsement.
+ChatGPT, Codex, OpenAI, Claude, Claude Code, Anthropic, GNOME, Fallout, Pip-Boy, Vault Boy, Bethesda Softworks, ZeniMax Media, and other names may be trademarks of their respective owners. They are used only to identify compatibility, data sources, or visual inspiration. Their use does not imply endorsement.

@@ -228,6 +228,23 @@
   opacity: 1;
 }
 
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-profile-button {
+  color: #58af4b;
+  padding: 4px 6px;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  font-family: monospace;
+  text-align: left;
+}
+
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-profile-button:hover,
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-profile-button:focus,
+.agents-tray-limits-theme-fallout-2 .agents-tray-limits-profile-button.selected {
+  color: #7bdc66;
+  border-color: #245d2a;
+  background-color: rgba(21, 65, 25, 0.55);
+}
+
 .agents-tray-limits-theme-fallout-2 .agents-tray-limits-message,
 .agents-tray-limits-theme-fallout-2 .agents-tray-limits-error {
   color: #58af4b;

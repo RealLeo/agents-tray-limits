@@ -100,3 +100,15 @@
 .agents-tray-limits-stat-row {
   spacing: 16px;
 }
+
+.agents-tray-limits-profile-button {
+  padding: 5px 7px;
+  border-radius: 4px;
+  text-align: left;
+}
+
+.agents-tray-limits-profile-button:hover,
+.agents-tray-limits-profile-button:focus,
+.agents-tray-limits-profile-button.selected {
+  background-color: rgba(255, 255, 255, 0.09);
+}

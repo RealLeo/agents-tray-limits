@@ -1,0 +1,92 @@
+{
+  "version": 6,
+  "master": "source/vault-boy-good-master-v3.png",
+  "canvas": [512, 512],
+  "textureSize": 2048,
+  "renderSize": 2048,
+  "frames": 32,
+  "fps": 28,
+  "intervalMs": 36,
+  "displaySize": 98,
+  "pixelScale": 0.01,
+  "gridStep": 3,
+  "camera": {
+    "type": "PERSP",
+    "distance": 3.5,
+    "planeHeight": 5.12,
+    "centerPixel": [256, 256]
+  },
+  "sourceDir": "sources/master-v6",
+  "referenceFile": "good-reference-master-v3.png",
+  "bodyFile": "good-clean-body-master-v6.png",
+  "armFile": "good-raise-arm-master-v6.png",
+  "finalRepairMask": "sources/master-v6/good-shoulder-repair-mask-master-v6.png",
+  "blendFile": "vault-boy-2d-rig-perspective-v6.blend",
+  "renderDir": "render/master-good-v6",
+  "previewDir": "previews/master-good-v6",
+  "previewPrefix": "master-v6",
+  "finalChangedPixelLimit": 900,
+  "materials": {
+    "body": "DITHERED",
+    "arm": "BLENDED"
+  },
+  "arm": {
+    "bbox": [76, 88, 238, 222],
+    "frontZ": 0.012,
+    "registerFrontPlane": true,
+    "shoulder": [226, 168],
+    "elbow": [178, 183],
+    "wrist": [148, 176],
+    "hand": [122, 151],
+    "pole": [190, 254],
+    "depth": {
+      "upper": -0.45,
+      "forearm": -0.9,
+      "hand": -1.5
+    },
+    "trajectory": [
+      {
+        "frame": 1,
+        "target": [212, 248],
+        "depth": {"upper": 1.0, "forearm": 1.0, "hand": 1.0},
+        "shoulderCorrective": 1.0,
+        "elbowCorrective": 0.0
+      },
+      {
+        "frame": 6,
+        "target": [214, 249],
+        "depth": {"upper": 1.0, "forearm": 1.0, "hand": 1.0},
+        "shoulderCorrective": 1.0,
+        "elbowCorrective": 0.12
+      },
+      {
+        "frame": 14,
+        "target": [190, 242],
+        "depth": {"upper": 0.82, "forearm": 0.82, "hand": 0.82},
+        "shoulderCorrective": 0.82,
+        "elbowCorrective": 0.35
+      },
+      {
+        "frame": 24,
+        "target": [166, 218],
+        "depth": {"upper": 0.0, "forearm": 0.18, "hand": 0.18},
+        "shoulderCorrective": 0.28,
+        "elbowCorrective": 0.24
+      },
+      {
+        "frame": 28,
+        "target": [157, 197],
+        "depth": {"upper": 0.0, "forearm": 0.0, "hand": 0.06},
+        "shoulderCorrective": 0.12,
+        "elbowCorrective": 0.1
+      },
+      {
+        "frame": 32,
+        "target": [148, 176],
+        "depth": {"upper": 0.0, "forearm": 0.0, "hand": 0.0},
+        "shoulderCorrective": 0.0,
+        "elbowCorrective": 0.0
+      }
+    ]
+  }
+}

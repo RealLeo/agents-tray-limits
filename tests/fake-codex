@@ -5,7 +5,7 @@ import os
 import sys
 import time
 
-if len(sys.argv) < 2 or sys.argv[1] != 'app-server':
+if 'app-server' not in sys.argv[1:]:
     print('fake-codex only supports app-server', file=sys.stderr)
     raise SystemExit(2)
 
@@ -30,7 +30,7 @@ for raw in sys.stdin:
         expected_client = {
             'name': 'agents_tray_limits_gnome',
             'title': 'Agents Tray Limits for GNOME',
-            'version': '2.0.0',
+            'version': '3.0.0',
         }
         if client_info != expected_client:
             response = {
@@ -40,7 +40,12 @@ for raw in sys.stdin:
         else:
             response = {
                 'id': request_id,
-                'result': {'serverInfo': {'name': 'fake-codex', 'version': '1.0.0'}},
+                'result': {'serverInfo': {
+                    'name': 'fake-codex',
+                    'version': '1.0.0',
+                    'codexHome': os.environ.get('CODEX_HOME'),
+                    'argv': sys.argv[1:],
+                }},
             }
     elif method == 'account/read':
         if scenario == 'logged-out':
@@ -48,7 +53,11 @@ for raw in sys.stdin:
         elif scenario == 'api-key':
             account = {'type': 'apiKey'}
         else:
-            account = {'type': 'chatgpt', 'email': 'evgeny@example.com', 'planType': 'pro'}
+            account = {
+                'type': 'chatgpt',
+                'email': os.environ.get('FAKE_CODEX_EMAIL', 'evgeny@example.com'),
+                'planType': 'pro',
+            }
         response = {
             'id': request_id,
             'result': {'account': account, 'requiresOpenaiAuth': True},

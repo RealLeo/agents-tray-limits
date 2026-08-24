@@ -69,10 +69,10 @@ else
   echo "Extension $UUID was installed and enabled."
 fi
 
-if ! command -v codex >/dev/null 2>&1; then
+if ! command -v codex >/dev/null 2>&1 && ! command -v claude >/dev/null 2>&1; then
   echo
-  echo 'Codex CLI was not found in PATH.'
-  echo 'Install it using the official installer, then sign in with ChatGPT:'
+  echo 'Neither Codex CLI nor Claude Code was found in PATH.'
+  echo 'Install at least one supported CLI. For Codex, use the official installer and sign in with ChatGPT:'
   echo '  curl -fsSL https://chatgpt.com/codex/install.sh | sh'
   echo '  codex'
 fi

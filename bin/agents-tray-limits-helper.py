@@ -1,27 +1,33 @@
 #!/usr/bin/env python3
-"""Read ChatGPT/Codex usage through the official Codex App Server.
+"""Read isolated Codex and Claude Code subscription-limit profiles.
 
-The program writes exactly one JSON object to stdout. It never reads or
-prints ChatGPT credentials; authentication remains managed by Codex CLI.
+The program writes exactly one JSON object to stdout. Codex authentication
+remains managed by Codex CLI. Claude data comes only from documented
+status-line fields; neither provider's credential file is read directly.
 """
 
 from __future__ import annotations
 
 import argparse
+import contextlib
+import fcntl
 import glob
 import json
 import os
 import queue
+import re
+import shlex
 import shutil
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, TextIO
 
-HELPER_VERSION = "2.0.0"
+HELPER_VERSION = "3.0.0"
 CLIENT_INFO = {
     "name": "agents_tray_limits_gnome",
     "title": "Agents Tray Limits for GNOME",
@@ -115,10 +121,17 @@ def find_codex(explicit: str | None) -> str:
     )
 
 
+PROFILE_ID_RE = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
+CLAUDE_MONITOR_DIR = "agents-tray-limits"
+CLAUDE_MONITOR_SCRIPT = "statusline.py"
+CLAUDE_MONITOR_BACKUP = "statusline-backup.json"
+
+
 class AppServerClient:
-    def __init__(self, codex_binary: str, timeout: float) -> None:
+    def __init__(self, codex_binary: str, timeout: float, config_dir: str = "") -> None:
         self.codex_binary = codex_binary
         self.timeout = timeout
+        self.config_dir = config_dir
         self.process: subprocess.Popen[str] | None = None
         self.events: queue.Queue[tuple[str, str | None]] = queue.Queue()
         self.pending: dict[int | str, dict[str, Any]] = {}
@@ -134,9 +147,17 @@ class AppServerClient:
             [launcher_dir, *[entry for entry in path_entries if entry != launcher_dir]]
         )
 
+        command = [self.codex_binary]
+        if self.config_dir:
+            environment["CODEX_HOME"] = self.config_dir
+            command.extend(["-c", 'cli_auth_credentials_store="file"'])
+        else:
+            environment.pop("CODEX_HOME", None)
+        command.append("app-server")
+
         try:
             self.process = subprocess.Popen(
-                [self.codex_binary, "app-server"],
+                command,
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -210,12 +231,10 @@ class AppServerClient:
             self.process.stdin.write(json.dumps(message, ensure_ascii=False) + "\n")
             self.process.stdin.flush()
         except (BrokenPipeError, OSError) as exc:
-            details = self._diagnostics() or str(exc)
-            raise HelperError(
-                "app_server_stopped",
-                "Codex App Server stopped unexpectedly.",
-                details,
-            ) from exc
+            stopped = self._stopped_error()
+            if not stopped.details:
+                stopped.details = str(exc)
+            raise stopped from exc
 
     def request(self, method: str, request_id: int, params: dict[str, Any] | None = None) -> dict[str, Any]:
         message: dict[str, Any] = {"method": method, "id": request_id}
@@ -294,7 +313,26 @@ class AppServerClient:
         text = "\n".join(lines).strip()
         return text[-2000:] if text else None
 
+    def _drain_diagnostics(self) -> None:
+        """Give reader threads a brief chance to publish exit diagnostics."""
+        deadline = time.monotonic() + 0.15
+        while time.monotonic() < deadline:
+            try:
+                kind, line = self.events.get(timeout=0.02)
+            except queue.Empty:
+                continue
+            if kind == "stderr" and line:
+                self.stderr_lines.append(line)
+                self.stderr_lines = self.stderr_lines[-30:]
+            elif kind == "stdout" and line:
+                try:
+                    json.loads(line)
+                except json.JSONDecodeError:
+                    self.invalid_stdout_lines.append(line[:500])
+                    self.invalid_stdout_lines = self.invalid_stdout_lines[-5:]
+
     def _stopped_error(self) -> HelperError:
+        self._drain_diagnostics()
         details = self._diagnostics()
         lowered = (details or "").lower()
         incompatible_node = (
@@ -335,9 +373,14 @@ def _rpc_result(response: dict[str, Any], method: str, *, optional: bool = False
     return response.get("result"), None
 
 
-def collect_usage(codex_binary: str, timeout: float) -> dict[str, Any]:
+def collect_codex_usage(
+    codex_binary: str,
+    timeout: float,
+    profile_id: str = "default-codex",
+    config_dir: str = "",
+) -> dict[str, Any]:
     started_at = time.monotonic()
-    with AppServerClient(codex_binary, timeout) as client:
+    with AppServerClient(codex_binary, timeout, config_dir) as client:
         initialize_response = client.request(
             "initialize",
             1,
@@ -402,6 +445,8 @@ def collect_usage(codex_binary: str, timeout: float) -> dict[str, Any]:
         result: dict[str, Any] = {
             "ok": True,
             "helperVersion": HELPER_VERSION,
+            "profileId": profile_id,
+            "provider": "codex",
             "source": "codex-app-server",
             "fetchedAt": int(time.time()),
             "elapsedMs": round((time.monotonic() - started_at) * 1000),
@@ -421,10 +466,519 @@ def collect_usage(codex_binary: str, timeout: float) -> dict[str, Any]:
         return result
 
 
+def collect_usage(codex_binary: str, timeout: float) -> dict[str, Any]:
+    """Backward-compatible entry point used by downstream helper consumers."""
+    return collect_codex_usage(codex_binary, timeout)
+
+
+def _profile_id(value: str) -> str:
+    profile_id = value.strip()
+    if not PROFILE_ID_RE.fullmatch(profile_id):
+        raise HelperError(
+            "invalid_profile",
+            "The profile ID must contain only letters, digits, dots, underscores, or hyphens.",
+        )
+    return profile_id
+
+
+def _config_directory(provider: str, value: str) -> Path:
+    raw = value.strip()
+    if raw:
+        if any(ord(character) < 32 or ord(character) == 127 for character in raw) or not (
+            raw.startswith("/") or raw.startswith("~/")
+        ):
+            raise HelperError(
+                "invalid_profile_path",
+                "Profile directories must be absolute paths or start with ~/.",
+                raw,
+            )
+        path = Path(os.path.expanduser(raw))
+        if not path.is_absolute():
+            raise HelperError(
+                "invalid_profile_path",
+                "Profile directories must be absolute paths or start with ~/.",
+                raw,
+            )
+        return path
+    return Path.home() / (".claude" if provider == "claude" else ".codex")
+
+
+def _cache_root() -> Path:
+    configured = os.environ.get("XDG_CACHE_HOME", "").strip()
+    root = Path(os.path.expanduser(configured)) if configured else Path.home() / ".cache"
+    if not root.is_absolute():
+        root = Path.home() / ".cache"
+    return root / "agents-tray-limits" / "claude"
+
+
+def _claude_cache_file(profile_id: str) -> Path:
+    return _cache_root() / f"{_profile_id(profile_id)}.json"
+
+
+def _read_json_object(path: Path, error_code: str, description: str) -> dict[str, Any]:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return {}
+    except (OSError, json.JSONDecodeError) as exc:
+        raise HelperError(error_code, description, str(exc)) from exc
+    if not isinstance(value, dict):
+        raise HelperError(error_code, description, "Top-level JSON value is not an object.")
+    return value
+
+
+def _atomic_write_text(path: Path, text: str, mode: int) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{path.name}.",
+        dir=os.fspath(path.parent),
+        text=True,
+    )
+    temporary = Path(temporary_name)
+    try:
+        os.fchmod(descriptor, mode)
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            handle.write(text)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+        os.chmod(path, mode)
+    except Exception:
+        try:
+            os.close(descriptor)
+        except OSError:
+            pass
+        temporary.unlink(missing_ok=True)
+        raise
+
+
+def _atomic_write_json(path: Path, value: dict[str, Any], mode: int = 0o600) -> None:
+    _atomic_write_text(
+        path,
+        json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        mode,
+    )
+
+
+def _claude_window(value: Any, duration_minutes: int) -> dict[str, Any] | None:
+    if not isinstance(value, dict):
+        return None
+    used = value.get("used_percentage")
+    resets_at = value.get("resets_at")
+    try:
+        used_number = float(used)
+        reset_number = int(float(resets_at))
+    except (TypeError, ValueError, OverflowError):
+        return None
+    if not (0 <= used_number <= 100) or reset_number <= 0:
+        return None
+    return {
+        "usedPercent": used_number,
+        "windowDurationMins": duration_minutes,
+        "resetsAt": reset_number,
+    }
+
+
+def collect_claude_usage(profile_id: str, config_dir: str = "") -> dict[str, Any]:
+    profile_id = _profile_id(profile_id)
+    config_directory = _config_directory("claude", config_dir)
+    cache_file = _claude_cache_file(profile_id)
+    if not cache_file.is_file():
+        raise HelperError(
+            "claude_cache_missing",
+            "Claude Code has not reported limits for this profile yet.",
+            os.fspath(cache_file),
+        )
+    cache = _read_json_object(
+        cache_file,
+        "claude_cache_invalid",
+        "The Claude Code limit cache is invalid.",
+    )
+    rate_limits = cache.get("rate_limits")
+    if not isinstance(rate_limits, dict):
+        raise HelperError(
+            "claude_limits_unavailable",
+            "Claude Code did not expose subscription rate limits for this profile.",
+        )
+    primary = _claude_window(rate_limits.get("five_hour"), 300)
+    secondary = _claude_window(rate_limits.get("seven_day"), 10080)
+    if primary is None:
+        raise HelperError(
+            "claude_limits_unavailable",
+            "Claude Code did not expose its five-hour subscription limit.",
+        )
+    if primary["resetsAt"] <= int(time.time()):
+        raise HelperError(
+            "claude_limits_stale",
+            "Claude Code must run once to refresh the expired limit data.",
+        )
+
+    bucket = {
+        "limitId": "claude",
+        "limitName": "Claude Code",
+        "primary": primary,
+        "secondary": secondary,
+        "rateLimitReachedType": None,
+    }
+    fetched_at = cache.get("fetchedAt")
+    try:
+        fetched_at = int(fetched_at) if fetched_at is not None else int(time.time())
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise HelperError(
+            "claude_cache_invalid",
+            "The Claude Code limit cache has an invalid update time.",
+        ) from exc
+    return {
+        "ok": True,
+        "helperVersion": HELPER_VERSION,
+        "profileId": profile_id,
+        "provider": "claude",
+        "source": "claude-statusline",
+        "fetchedAt": fetched_at,
+        "account": {"type": "claude"},
+        "rateLimits": {
+            "rateLimits": bucket,
+            "rateLimitsByLimitId": {"claude": bucket},
+        },
+        "usage": None,
+        "claudeVersion": cache.get("version"),
+        "configDir": os.fspath(config_directory),
+    }
+
+
+def _monitor_paths(config_dir: str) -> tuple[Path, Path, Path, Path]:
+    root = _config_directory("claude", config_dir)
+    managed = root / CLAUDE_MONITOR_DIR
+    return (
+        root / "settings.json",
+        managed / CLAUDE_MONITOR_SCRIPT,
+        managed / CLAUDE_MONITOR_BACKUP,
+        managed / "statusline.lock",
+    )
+
+
+def _wrapper_command(script_path: Path) -> str:
+    return f"/usr/bin/python3 {shlex.quote(os.fspath(script_path))}"
+
+
+def _collector_source(
+    profile_id: str,
+    cache_file: Path,
+    original_command: str,
+    wrapper_command: str,
+) -> str:
+    return f'''#!/usr/bin/env python3
+import json
+import os
+import subprocess
+import sys
+import tempfile
+import time
+from pathlib import Path
+
+PROFILE_ID = {profile_id!r}
+CACHE_FILE = Path({os.fspath(cache_file)!r})
+ORIGINAL_COMMAND = {original_command!r}
+WRAPPER_COMMAND = {wrapper_command!r}
+SCRIPT_FILE = Path(__file__).resolve()
+BACKUP_FILE = SCRIPT_FILE.with_name({CLAUDE_MONITOR_BACKUP!r})
+SETTINGS_FILE = SCRIPT_FILE.parent.parent / "settings.json"
+
+
+def atomic_json(path, value, mode=0o600):
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    os.chmod(path.parent, 0o700)
+    fd, name = tempfile.mkstemp(prefix="." + path.name + ".", dir=str(path.parent), text=True)
+    temporary = Path(name)
+    try:
+        os.fchmod(fd, mode)
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            json.dump(value, handle, ensure_ascii=False, indent=2, sort_keys=True)
+            handle.write("\\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+        os.chmod(path, mode)
+    except Exception:
+        temporary.unlink(missing_ok=True)
+        raise
+
+
+def clean_window(value):
+    if not isinstance(value, dict):
+        return None
+    try:
+        used = float(value.get("used_percentage"))
+        resets_at = int(float(value.get("resets_at")))
+    except (TypeError, ValueError, OverflowError):
+        return None
+    if not 0 <= used <= 100 or resets_at <= 0:
+        return None
+    return {{"used_percentage": used, "resets_at": resets_at}}
+
+
+def clean_rate_limits(value):
+    if not isinstance(value, dict):
+        return {{}}
+    cleaned = {{}}
+    for name in ("five_hour", "seven_day"):
+        window = clean_window(value.get(name))
+        if window is not None:
+            cleaned[name] = window
+    return cleaned
+
+
+def restore():
+    try:
+        backup = json.loads(BACKUP_FILE.read_text(encoding="utf-8"))
+        settings = json.loads(SETTINGS_FILE.read_text(encoding="utf-8")) if SETTINGS_FILE.exists() else {{}}
+    except Exception as exc:
+        print("Agents Tray Limits restore failed: " + str(exc), file=sys.stderr)
+        return 2
+    current = settings.get("statusLine")
+    if current != backup.get("installedStatusLine"):
+        print("Agents Tray Limits did not restore statusLine because it was changed independently.", file=sys.stderr)
+        return 4
+    if backup.get("originalPresent"):
+        settings["statusLine"] = backup.get("originalStatusLine")
+    else:
+        settings.pop("statusLine", None)
+    atomic_json(SETTINGS_FILE, settings)
+    BACKUP_FILE.unlink(missing_ok=True)
+    CACHE_FILE.unlink(missing_ok=True)
+    try:
+        SCRIPT_FILE.unlink()
+        SCRIPT_FILE.parent.rmdir()
+    except OSError:
+        pass
+    return 0
+
+
+if "--restore" in sys.argv[1:]:
+    raise SystemExit(restore())
+
+raw = sys.stdin.read()
+try:
+    source = json.loads(raw)
+    version = source.get("version")
+    if not isinstance(version, str):
+        version = None
+    payload = {{
+        "version": version,
+        "rate_limits": clean_rate_limits(source.get("rate_limits")),
+        "fetchedAt": int(time.time()),
+    }}
+    atomic_json(CACHE_FILE, payload)
+except Exception as exc:
+    print("Agents Tray Limits cache update failed: " + str(exc), file=sys.stderr)
+
+if not ORIGINAL_COMMAND:
+    raise SystemExit(0)
+completed = subprocess.run(
+    ORIGINAL_COMMAND,
+    shell=True,
+    input=raw,
+    text=True,
+    capture_output=True,
+    check=False,
+)
+sys.stdout.write(completed.stdout)
+sys.stderr.write(completed.stderr)
+raise SystemExit(completed.returncode)
+'''
+
+
+@contextlib.contextmanager
+def _monitor_lock(lock_path: Path):
+    lock_path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    with lock_path.open("a+", encoding="utf-8") as handle:
+        os.fchmod(handle.fileno(), 0o600)
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+
+def _settings_object(settings_path: Path) -> dict[str, Any]:
+    if not settings_path.exists():
+        return {}
+    return _read_json_object(
+        settings_path,
+        "claude_settings_invalid",
+        "Claude Code settings.json is not valid JSON.",
+    )
+
+
+def claude_monitor_status(profile_id: str, config_dir: str = "") -> dict[str, Any]:
+    profile_id = _profile_id(profile_id)
+    settings_path, script_path, backup_path, _ = _monitor_paths(config_dir)
+    settings = _settings_object(settings_path)
+    current = settings.get("statusLine")
+    current_command = current.get("command") if isinstance(current, dict) else None
+    expected = _wrapper_command(script_path)
+    backup = _read_json_object(
+        backup_path,
+        "claude_monitor_invalid",
+        "The Claude monitor backup is invalid.",
+    ) if backup_path.exists() else {}
+    if backup:
+        state = "installed" if (
+            backup.get("profileId") == profile_id and
+            current == backup.get("installedStatusLine")
+        ) else "conflict"
+    elif current_command == expected or script_path.exists():
+        state = "conflict"
+    else:
+        state = "not_installed"
+    return {
+        "ok": True,
+        "helperVersion": HELPER_VERSION,
+        "profileId": profile_id,
+        "provider": "claude",
+        "operation": "monitor-status",
+        "monitorState": state,
+        "scriptPath": os.fspath(script_path),
+        "cachePath": os.fspath(_claude_cache_file(profile_id)),
+    }
+
+
+def install_claude_monitor(profile_id: str, config_dir: str = "") -> dict[str, Any]:
+    profile_id = _profile_id(profile_id)
+    settings_path, script_path, backup_path, lock_path = _monitor_paths(config_dir)
+    cache_file = _claude_cache_file(profile_id)
+    wrapper_command = _wrapper_command(script_path)
+    with _monitor_lock(lock_path):
+        created_backup = False
+        settings = _settings_object(settings_path)
+        current = settings.get("statusLine")
+        current_command = current.get("command") if isinstance(current, dict) else None
+        if backup_path.exists():
+            backup = _read_json_object(
+                backup_path,
+                "claude_monitor_invalid",
+                "The Claude monitor backup is invalid.",
+            )
+            if (
+                backup.get("profileId") != profile_id or
+                current != backup.get("installedStatusLine")
+            ):
+                raise HelperError(
+                    "claude_monitor_conflict",
+                    "Claude Code statusLine changed after monitoring was installed.",
+                )
+            original_present = bool(backup.get("originalPresent"))
+            original = backup.get("originalStatusLine")
+        else:
+            if current_command == wrapper_command or script_path.exists():
+                raise HelperError(
+                    "claude_monitor_conflict",
+                    "Claude monitor files exist without a restorable backup.",
+                )
+            original_present = "statusLine" in settings
+            original = current
+            backup = {
+                "version": 1,
+                "profileId": profile_id,
+                "originalPresent": original_present,
+                "originalStatusLine": original,
+                "wrapperCommand": wrapper_command,
+            }
+            created_backup = True
+
+        original_command = original.get("command", "") if isinstance(original, dict) else ""
+        wrapper = dict(original) if isinstance(original, dict) else {}
+        wrapper["type"] = "command"
+        wrapper["command"] = wrapper_command
+        if created_backup:
+            backup["installedStatusLine"] = wrapper
+        settings["statusLine"] = wrapper
+        try:
+            if created_backup:
+                _atomic_write_json(backup_path, backup)
+            _atomic_write_text(
+                script_path,
+                _collector_source(profile_id, cache_file, original_command, wrapper_command),
+                0o700,
+            )
+            _atomic_write_json(settings_path, settings)
+        except Exception:
+            if created_backup:
+                script_path.unlink(missing_ok=True)
+                backup_path.unlink(missing_ok=True)
+            raise
+
+    result = claude_monitor_status(profile_id, config_dir)
+    result["operation"] = "monitor-install"
+    return result
+
+
+def restore_claude_monitor(profile_id: str, config_dir: str = "") -> dict[str, Any]:
+    profile_id = _profile_id(profile_id)
+    settings_path, script_path, backup_path, lock_path = _monitor_paths(config_dir)
+    with _monitor_lock(lock_path):
+        if not backup_path.exists():
+            if script_path.exists():
+                raise HelperError(
+                    "claude_monitor_conflict",
+                    "Claude monitor files exist without a restorable backup.",
+                )
+            return {
+                "ok": True,
+                "helperVersion": HELPER_VERSION,
+                "profileId": profile_id,
+                "provider": "claude",
+                "operation": "monitor-restore",
+                "monitorState": "not_installed",
+            }
+        backup = _read_json_object(
+            backup_path,
+            "claude_monitor_invalid",
+            "The Claude monitor backup is invalid.",
+        )
+        settings = _settings_object(settings_path)
+        current = settings.get("statusLine")
+        if (
+            backup.get("profileId") != profile_id or
+            current != backup.get("installedStatusLine")
+        ):
+            raise HelperError(
+                "claude_monitor_conflict",
+                "Claude Code statusLine changed independently; it was not overwritten.",
+            )
+        if backup.get("originalPresent"):
+            settings["statusLine"] = backup.get("originalStatusLine")
+        else:
+            settings.pop("statusLine", None)
+        _atomic_write_json(settings_path, settings)
+        backup_path.unlink(missing_ok=True)
+        script_path.unlink(missing_ok=True)
+        _claude_cache_file(profile_id).unlink(missing_ok=True)
+        try:
+            script_path.parent.rmdir()
+        except OSError:
+            pass
+    return {
+        "ok": True,
+        "helperVersion": HELPER_VERSION,
+        "profileId": profile_id,
+        "provider": "claude",
+        "operation": "monitor-restore",
+        "monitorState": "not_installed",
+    }
+
+
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--provider", choices=("codex", "claude"), default="codex")
+    parser.add_argument("--profile-id", default="default-codex", help="Stable profile identifier")
+    parser.add_argument("--config-dir", default="", help="CODEX_HOME or CLAUDE_CONFIG_DIR")
     parser.add_argument("--codex-bin", default="", help="Explicit path to the codex executable")
     parser.add_argument("--timeout", type=float, default=15.0, help="Timeout for one RPC request, in seconds")
+    monitor = parser.add_mutually_exclusive_group()
+    monitor.add_argument("--install-claude-monitor", action="store_true")
+    monitor.add_argument("--restore-claude-monitor", action="store_true")
+    monitor.add_argument("--claude-monitor-status", action="store_true")
     parser.add_argument("--pretty", action="store_true", help="Pretty-print the JSON response")
     return parser.parse_args(argv)
 
@@ -440,8 +994,25 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv if argv is not None else sys.argv[1:])
     timeout = min(max(args.timeout, 2.0), 60.0)
     try:
-        codex_binary = find_codex(args.codex_bin or None)
-        payload = collect_usage(codex_binary, timeout)
+        profile_id = _profile_id(args.profile_id)
+        if args.install_claude_monitor:
+            payload = install_claude_monitor(profile_id, args.config_dir)
+        elif args.restore_claude_monitor:
+            payload = restore_claude_monitor(profile_id, args.config_dir)
+        elif args.claude_monitor_status:
+            payload = claude_monitor_status(profile_id, args.config_dir)
+        elif args.provider == "claude":
+            payload = collect_claude_usage(profile_id, args.config_dir)
+        else:
+            codex_binary = find_codex(args.codex_bin or None)
+            config_dir = os.fspath(_config_directory("codex", args.config_dir)) \
+                if args.config_dir else ""
+            payload = collect_codex_usage(
+                codex_binary,
+                timeout,
+                profile_id,
+                config_dir,
+            )
         emit(payload, args.pretty)
         return 0
     except HelperError as exc:
@@ -449,6 +1020,8 @@ def main(argv: list[str] | None = None) -> int:
             "ok": False,
             "helperVersion": HELPER_VERSION,
             "fetchedAt": int(time.time()),
+            "profileId": getattr(args, "profile_id", ""),
+            "provider": getattr(args, "provider", "codex"),
             "errorCode": exc.code,
             "message": exc.message,
         }
@@ -462,6 +1035,8 @@ def main(argv: list[str] | None = None) -> int:
                 "ok": False,
                 "helperVersion": HELPER_VERSION,
                 "fetchedAt": int(time.time()),
+                "profileId": getattr(args, "profile_id", ""),
+                "provider": getattr(args, "provider", "codex"),
                 "errorCode": "internal_error",
                 "message": "Agents Tray Limits helper encountered an internal error.",
                 "details": f"{type(exc).__name__}: {exc}",

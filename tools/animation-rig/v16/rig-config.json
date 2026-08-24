@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "canvas": [512, 512],
+  "sourceSize": 2048,
+  "frames": 24,
+  "fps": 24,
+  "intervalMs": 42,
+  "displaySize": 98,
+  "pixelScale": 0.01,
+  "gridStep": 6,
+  "camera": {
+    "orthographicScale": 5.12,
+    "centerPixel": [256, 256]
+  },
+  "joints": {
+    "raiseShoulder": [190, 183],
+    "raiseElbow": [114, 183],
+    "raiseWrist": [48, 183],
+    "raiseHand": [22, 183],
+    "restShoulder": [322, 183],
+    "restElbow": [348, 254],
+    "restWrist": [389, 306],
+    "restHand": [405, 330]
+  }
+}

@@ -20,7 +20,7 @@ class ReleaseIdentityTests(unittest.TestCase):
         metadata = json.loads((ROOT / "metadata.json").read_text(encoding="utf-8"))
         self.assertEqual(metadata["uuid"], UUID)
         self.assertEqual(metadata["name"], "Agents Tray Limits")
-        self.assertEqual(metadata["version"], 14)
+        self.assertEqual(metadata["version"], 17)
         self.assertEqual(metadata["settings-schema"], SCHEMA_ID)
         self.assertEqual(metadata["url"], "https://github.com/RealLeo/agents-tray-limits")
 
@@ -35,6 +35,7 @@ class ReleaseIdentityTests(unittest.TestCase):
             "i18n.js",
             "stylesheet.css",
             "themeLoader.js",
+            "profileLogic.js",
             "metadata.json",
             "bin/agents-tray-limits-helper.py",
             "schemas/org.gnome.shell.extensions.agents-tray-limits.gschema.xml",
@@ -63,6 +64,8 @@ class ReleaseIdentityTests(unittest.TestCase):
         keys = {key.get("name"): key for key in schema.findall("key")}
         self.assertEqual(keys["theme-id"].findtext("default"), "'fallout-2'")
         self.assertEqual(keys["language"].findtext("default"), "'system'")
+        self.assertEqual(keys["profiles-json"].findtext("default"), "''")
+        self.assertEqual(keys["active-profile-id"].findtext("default"), "''")
         choices = [choice.get("value") for choice in keys["language"].findall("choices/choice")]
         self.assertEqual(choices, ["system", "en", "ru", "de", "fr", "zh-CN"])
 
@@ -78,6 +81,10 @@ class ReleaseIdentityTests(unittest.TestCase):
             r"[\"']errorCode[\"']\s*:\s*[\"']([^\"']+)",
             helper_source,
         ))
+        error_codes.update(re.findall(
+            r"_read_json_object\(\s*[^,]+,\s*[\"']([^\"']+)",
+            helper_source,
+        ))
         self.assertEqual(error_codes, {
             "app_server_error",
             "app_server_start_failed",
@@ -90,6 +97,15 @@ class ReleaseIdentityTests(unittest.TestCase):
             "protocol_error",
             "timeout",
             "unsupported_auth",
+            "invalid_profile",
+            "invalid_profile_path",
+            "claude_cache_missing",
+            "claude_cache_invalid",
+            "claude_limits_unavailable",
+            "claude_limits_stale",
+            "claude_settings_invalid",
+            "claude_monitor_invalid",
+            "claude_monitor_conflict",
         })
 
         for language in ("en", "ru", "de", "fr", "zh-CN"):
@@ -116,6 +132,7 @@ class ReleaseIdentityTests(unittest.TestCase):
 
             self.assertIn("LICENSE", names)
             self.assertIn("NOTICE.md", names)
+            self.assertIn("profileLogic.js", names)
             for locale in ("en", "ru", "de", "fr", "zh-CN"):
                 self.assertIn(f"locales/{locale}.json", names)
             self.assertIn("themes/fallout-2/assets/ui/device-shell-v3.png", names)
@@ -137,6 +154,14 @@ class ReleaseIdentityTests(unittest.TestCase):
                     "red-button-pressed-v4.png",
                 },
             )
+
+    def test_uninstall_restores_claude_monitors_before_removal(self) -> None:
+        source = (ROOT / "uninstall.sh").read_text(encoding="utf-8")
+        restore = source.index("--restore-claude-monitor")
+        removal = source.index('rm -rf -- "$TARGET"')
+        self.assertLess(restore, removal)
+        self.assertIn("profiles-json", source)
+        self.assertIn("statusline.py --restore", source)
 
 
 if __name__ == "__main__":

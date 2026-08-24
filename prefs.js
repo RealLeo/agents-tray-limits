@@ -1,4 +1,5 @@
 import Adw from 'gi://Adw';
+import Gdk from 'gi://Gdk';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import Gtk from 'gi://Gtk';
@@ -16,6 +17,13 @@ import {
     userThemesDirectory,
 } from './themeLoader.js';
 import {migrateThemeId} from './themeLogic.js';
+import {
+    PROFILE_CONFIG_VERSION,
+    loginCommand,
+    parseProfilesDocument,
+    providerName,
+    validateProfileCandidate,
+} from './profileLogic.js';
 
 const CHATGPT_CODEX_URL = 'https://chatgpt.com/codex';
 const DISPLAY_VALUES = ['remaining', 'used'];
@@ -303,6 +311,8 @@ export default class AgentsTrayLimitsPreferences extends ExtensionPreferences {
         );
         detailsGroup.add(tokensRow);
 
+        page.add(this._buildProfilesGroup(settings, i18n, rebuild));
+
         const connectionGroup = new Adw.PreferencesGroup({
             title: i18n.t('prefs.connection.title'),
             description: i18n.t('prefs.connection.description'),
@@ -370,5 +380,304 @@ export default class AgentsTrayLimitsPreferences extends ExtensionPreferences {
         privacyGroup.add(scopeRow);
 
         return page;
+    }
+
+    _buildProfilesGroup(settings, i18n, rebuild) {
+        const parsed = parseProfilesDocument(settings.get_string('profiles-json'));
+        if (parsed.migrated)
+            settings.set_string('profiles-json', parsed.serialized);
+        const profiles = parsed.document.profiles;
+        const group = new Adw.PreferencesGroup({
+            title: i18n.t('prefs.profiles.title'),
+            description: i18n.t('prefs.profiles.description'),
+        });
+
+        const activeIds = profiles.map(profile => profile.id);
+        const currentActive = settings.get_string('active-profile-id');
+        const activeRow = new Adw.ComboRow({
+            title: i18n.t('prefs.profiles.active'),
+            subtitle: i18n.t('prefs.profiles.activeSubtitle'),
+            model: stringList(profiles.map(profile =>
+                `${providerName(profile.provider)} · ${profile.label}`
+            )),
+            selected: Math.max(0, selectedIndex(activeIds, currentActive)),
+        });
+        activeRow.connect('notify::selected', row => {
+            const profileId = activeIds[row.selected];
+            if (profileId)
+                settings.set_string('active-profile-id', profileId);
+        });
+        group.add(activeRow);
+
+        for (const profile of profiles)
+            group.add(this._profileEditorRow(profile, profiles, settings, i18n, rebuild));
+        group.add(this._newProfileRow(profiles, settings, i18n, rebuild));
+        return group;
+    }
+
+    _profileEditorRow(profile, profiles, settings, i18n, rebuild) {
+        const installed = profile.provider === 'claude' &&
+            this._claudeMonitorBackup(profile).query_exists(null);
+        const row = new Adw.ExpanderRow({
+            title: profile.label,
+            subtitle: `${providerName(profile.provider)} · ` +
+                (profile.configDir || i18n.t('prefs.profiles.defaultDirectory')),
+        });
+        row.add_prefix(new Gtk.Image({
+            icon_name: profile.provider === 'claude'
+                ? 'applications-science-symbolic'
+                : 'utilities-terminal-symbolic',
+            valign: Gtk.Align.CENTER,
+        }));
+
+        const labelRow = new Adw.EntryRow({
+            title: i18n.t('prefs.profiles.label'),
+            text: profile.label,
+        });
+        row.add_row(labelRow);
+        const directoryRow = new Adw.EntryRow({
+            title: profile.provider === 'claude'
+                ? 'CLAUDE_CONFIG_DIR'
+                : 'CODEX_HOME',
+            text: profile.configDir,
+            sensitive: !installed,
+        });
+        directoryRow.set_tooltip_text(installed
+            ? i18n.t('prefs.profiles.disableBeforePathChange')
+            : i18n.t('prefs.profiles.directoryTooltip'));
+        row.add_row(directoryRow);
+
+        const commandRow = new Adw.ActionRow({
+            title: i18n.t('prefs.profiles.loginCommand'),
+            subtitle: loginCommand(profile, settings.get_string('codex-binary').trim() || 'codex'),
+        });
+        const copyButton = new Gtk.Button({
+            label: i18n.t('prefs.profiles.copy'),
+            valign: Gtk.Align.CENTER,
+        });
+        copyButton.connect('clicked', () => {
+            Gdk.Display.get_default()?.get_clipboard().set_text(commandRow.subtitle);
+        });
+        commandRow.add_suffix(copyButton);
+        commandRow.activatable_widget = copyButton;
+        row.add_row(commandRow);
+
+        if (profile.provider === 'claude') {
+            const monitorRow = new Adw.ActionRow({
+                title: i18n.t('prefs.profiles.claudeMonitor'),
+                subtitle: i18n.t(installed
+                    ? 'prefs.profiles.claudeMonitorInstalled'
+                    : 'prefs.profiles.claudeMonitorDisabled'),
+            });
+            const monitorButton = new Gtk.Button({
+                label: i18n.t(installed
+                    ? 'prefs.profiles.disableMonitor'
+                    : 'prefs.profiles.enableMonitor'),
+                valign: Gtk.Align.CENTER,
+            });
+            monitorButton.connect('clicked', () => {
+                monitorButton.sensitive = false;
+                const operation = installed
+                    ? '--restore-claude-monitor'
+                    : '--install-claude-monitor';
+                this._runClaudeMonitor(profile, operation, payload => {
+                    if (payload?.ok)
+                        rebuild();
+                    else {
+                        monitorButton.sensitive = true;
+                        monitorRow.subtitle = this._helperError(payload, i18n);
+                    }
+                });
+            });
+            monitorRow.add_suffix(monitorButton);
+            monitorRow.activatable_widget = monitorButton;
+            row.add_row(monitorRow);
+        }
+
+        const actions = new Adw.ActionRow({
+            title: i18n.t('prefs.profiles.actions'),
+        });
+        const saveButton = new Gtk.Button({
+            label: i18n.t('prefs.profiles.save'),
+            valign: Gtk.Align.CENTER,
+        });
+        saveButton.connect('clicked', () => {
+            const candidate = {
+                ...profile,
+                label: labelRow.text,
+                configDir: directoryRow.text,
+            };
+            const validation = validateProfileCandidate(candidate, profiles, profile.id);
+            if (!validation.ok) {
+                row.subtitle = i18n.t(`prefs.profiles.validation.${validation.error}`);
+                return;
+            }
+            this._replaceProfile(settings, profiles, validation.profile);
+            rebuild();
+        });
+        actions.add_suffix(saveButton);
+
+        const deleteButton = new Gtk.Button({
+            label: i18n.t('prefs.profiles.remove'),
+            valign: Gtk.Align.CENTER,
+            sensitive: profiles.length > 1,
+            css_classes: ['destructive-action'],
+        });
+        deleteButton.connect('clicked', () => {
+            const remove = () => {
+                const remaining = profiles.filter(item => item.id !== profile.id);
+                this._writeProfiles(settings, remaining);
+                if (settings.get_string('active-profile-id') === profile.id)
+                    settings.set_string('active-profile-id', remaining[0]?.id ?? '');
+                rebuild();
+            };
+            if (profile.provider === 'claude' && installed) {
+                deleteButton.sensitive = false;
+                this._runClaudeMonitor(profile, '--restore-claude-monitor', payload => {
+                    if (payload?.ok)
+                        remove();
+                    else {
+                        deleteButton.sensitive = true;
+                        row.subtitle = this._helperError(payload, i18n);
+                    }
+                });
+            } else {
+                remove();
+            }
+        });
+        actions.add_suffix(deleteButton);
+        row.add_row(actions);
+        return row;
+    }
+
+    _newProfileRow(profiles, settings, i18n, rebuild) {
+        const row = new Adw.ExpanderRow({
+            title: i18n.t('prefs.profiles.add'),
+            subtitle: i18n.t('prefs.profiles.addSubtitle'),
+        });
+        row.add_prefix(new Gtk.Image({
+            icon_name: 'list-add-symbolic',
+            valign: Gtk.Align.CENTER,
+        }));
+        const providerRow = new Adw.ComboRow({
+            title: i18n.t('prefs.profiles.provider'),
+            model: stringList(['Codex', 'Claude Code']),
+            selected: 0,
+        });
+        row.add_row(providerRow);
+        const labelRow = new Adw.EntryRow({title: i18n.t('prefs.profiles.label')});
+        row.add_row(labelRow);
+        const directoryRow = new Adw.EntryRow({
+            title: i18n.t('prefs.profiles.directory'),
+        });
+        row.add_row(directoryRow);
+        const addRow = new Adw.ActionRow({title: i18n.t('prefs.profiles.addAction')});
+        const addButton = new Gtk.Button({
+            label: i18n.t('prefs.profiles.addButton'),
+            valign: Gtk.Align.CENTER,
+            css_classes: ['suggested-action'],
+        });
+        addButton.connect('clicked', () => {
+            const candidate = {
+                id: GLib.uuid_string_random(),
+                provider: providerRow.selected === 1 ? 'claude' : 'codex',
+                label: labelRow.text,
+                configDir: directoryRow.text,
+            };
+            const validation = validateProfileCandidate(candidate, profiles);
+            if (!validation.ok) {
+                row.subtitle = i18n.t(`prefs.profiles.validation.${validation.error}`);
+                return;
+            }
+            this._writeProfiles(settings, [...profiles, validation.profile]);
+            settings.set_string('active-profile-id', validation.profile.id);
+            rebuild();
+        });
+        addRow.add_suffix(addButton);
+        addRow.activatable_widget = addButton;
+        row.add_row(addRow);
+        return row;
+    }
+
+    _replaceProfile(settings, profiles, replacement) {
+        this._writeProfiles(settings, profiles.map(profile =>
+            profile.id === replacement.id ? replacement : profile
+        ));
+    }
+
+    _writeProfiles(settings, profiles) {
+        settings.set_string('profiles-json', JSON.stringify({
+            version: PROFILE_CONFIG_VERSION,
+            profiles,
+        }));
+    }
+
+    _expandedProfileDirectory(profile) {
+        if (profile.configDir.startsWith('~/'))
+            return GLib.build_filenamev([GLib.get_home_dir(), profile.configDir.slice(2)]);
+        if (profile.configDir)
+            return profile.configDir;
+        return GLib.build_filenamev([GLib.get_home_dir(), '.claude']);
+    }
+
+    _claudeMonitorBackup(profile) {
+        return Gio.File.new_for_path(GLib.build_filenamev([
+            this._expandedProfileDirectory(profile),
+            'agents-tray-limits',
+            'statusline-backup.json',
+        ]));
+    }
+
+    _runClaudeMonitor(profile, operation, callback) {
+        const pythonPath = GLib.file_test('/usr/bin/python3', GLib.FileTest.IS_EXECUTABLE)
+            ? '/usr/bin/python3'
+            : GLib.find_program_in_path('python3');
+        if (!pythonPath) {
+            callback({ok: false, errorCode: 'python_not_found'});
+            return;
+        }
+        const helperPath = GLib.build_filenamev([
+            this.path,
+            'bin',
+            'agents-tray-limits-helper.py',
+        ]);
+        const argv = [
+            pythonPath,
+            helperPath,
+            '--provider',
+            'claude',
+            '--profile-id',
+            profile.id,
+            operation,
+        ];
+        if (profile.configDir)
+            argv.push('--config-dir', profile.configDir);
+        try {
+            const process = Gio.Subprocess.new(
+                argv,
+                Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE
+            );
+            process.communicate_utf8_async(null, null, (source, result) => {
+                try {
+                    const [, stdout, stderr] = source.communicate_utf8_finish(result);
+                    const payload = JSON.parse((stdout ?? '').trim());
+                    if (!payload.ok && stderr)
+                        payload.details ??= stderr.trim();
+                    callback(payload);
+                } catch (error) {
+                    callback({ok: false, errorCode: 'helper_failed', details: error.message});
+                }
+            });
+        } catch (error) {
+            callback({ok: false, errorCode: 'helper_start_failed', details: error.message});
+        }
+    }
+
+    _helperError(payload, i18n) {
+        const key = `errors.${payload?.errorCode ?? 'unknown_error'}`;
+        const translated = i18n.t(key);
+        return translated === key
+            ? String(payload?.message ?? payload?.details ?? i18n.t('errors.unknown_error'))
+            : translated;
     }
 }

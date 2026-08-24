@@ -1,0 +1,36 @@
+{
+  "version": 3,
+  "master": "source/vault-boy-good-master-v3.png",
+  "canvas": [512, 512],
+  "textureSize": 2048,
+  "renderSize": 2048,
+  "frames": 24,
+  "fps": 24,
+  "intervalMs": 42,
+  "displaySize": 98,
+  "pixelScale": 0.01,
+  "gridStep": 3,
+  "camera": {
+    "orthographicScale": 5.12,
+    "centerPixel": [256, 256]
+  },
+  "arm": {
+    "bbox": [76, 90, 246, 240],
+    "bodyEraseCutoffX": 220,
+    "polygon": [
+      [230, 150], [215, 154], [180, 160], [160, 150], [155, 98],
+      [120, 95], [112, 132], [88, 140], [82, 175], [88, 205],
+      [110, 220], [148, 215], [160, 200], [168, 215], [210, 230],
+      [230, 215], [242, 185],
+      [242, 160]
+    ],
+    "extraRects": [[80, 180, 180, 235]],
+    "shoulder": [226, 168],
+    "elbow": [178, 183],
+    "wrist": [148, 176],
+    "hand": [122, 151],
+    "pole": [190, 254],
+    "startTarget": [174, 236],
+    "anticipationTarget": [178, 242]
+  }
+}

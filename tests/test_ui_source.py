@@ -6,7 +6,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 EXTENSION = ROOT
-STABILIZER = ROOT / "tools" / "stabilize_animation.py"
+RIG_RENDERER = ROOT / "tools" / "render_vault_boy_animation.py"
+RIG_CONFIG = ROOT / "tools" / "animation-rig" / "v15" / "rig.json"
 SOURCE = (EXTENSION / "extension.js").read_text(encoding="utf-8")
 PREFS = (EXTENSION / "prefs.js").read_text(encoding="utf-8")
 CSS = (EXTENSION / "themes" / "fallout-2" / "theme.css").read_text(encoding="utf-8")
@@ -25,6 +26,32 @@ def png_header(path):
 
 
 class PipboyUiSourceTests(unittest.TestCase):
+    def test_multi_profile_state_refresh_and_menu_contract(self):
+        self.assertIn("const MAX_PARALLEL_REFRESHES = 3", SOURCE)
+        refresh = SOURCE.split("_refresh() {", 1)[1].split("_updatePanelText() {", 1)[0]
+        self.assertIn("for (const profile of this._profiles)", refresh)
+        self.assertIn("this._runningRefreshes < MAX_PARALLEL_REFRESHES", refresh)
+        self.assertIn("this._profileStates.get(profile.id)", refresh)
+        self.assertIn("--provider", refresh)
+        self.assertIn("--profile-id", refresh)
+        self.assertIn("--config-dir", refresh)
+
+        selection = SOURCE.split("_selectProfile(profileId) {", 1)[1]
+        selection = selection.split("_rebuildCurrentMenu() {", 1)[0]
+        self.assertIn("set_string('active-profile-id', profileId)", selection)
+        self.assertNotIn("_refresh()", selection)
+        self.assertGreaterEqual(SOURCE.count("this._addProfileSelector()"), 5)
+        self.assertIn("this._profileStates = new Map()", SOURCE)
+        self.assertIn("state.error = error", SOURCE)
+        self.assertIn("state.data = payload", SOURCE)
+        self.assertIn("providerUrl(activeProvider)", SOURCE)
+        self.assertIn("app.accessibleProfileValue", SOURCE)
+
+        self.assertIn("parseProfilesDocument(settings.get_string('profiles-json'))", PREFS)
+        self.assertIn("--install-claude-monitor", PREFS)
+        self.assertIn("--restore-claude-monitor", PREFS)
+        self.assertIn("remaining[0]?.id ?? ''", PREFS)
+
     def test_language_switch_rebuilds_without_refreshing_data(self):
         setting_method = SOURCE.split("_onSettingChanged(key) {", 1)[1]
         setting_method = setting_method.split("_applyAppearance() {", 1)[0]
@@ -51,7 +78,7 @@ class PipboyUiSourceTests(unittest.TestCase):
 
     def test_version_and_fixed_outer_geometry(self):
         metadata = json.loads((EXTENSION / "metadata.json").read_text(encoding="utf-8"))
-        self.assertEqual(metadata["version"], 14)
+        self.assertEqual(metadata["version"], 17)
         device_rule = CSS.split(".agents-tray-limits-pipboy-device {", 1)[1].split("}", 1)[0]
         self.assertIn("width: 680px", device_rule)
         self.assertIn("height: 520px", device_rule)
@@ -149,7 +176,7 @@ class PipboyUiSourceTests(unittest.TestCase):
         content_rule = content_rule.split("}", 1)[0]
         self.assertIn("padding: 8px 18px 10px 14px", content_rule)
 
-    def test_v3_background_and_new_frame_set(self):
+    def test_v3_background_and_mixed_frame_set(self):
         expected = {
             "ui/device-shell-v3.png": (1360, 1040, 2),
             "ui/red-button-v4.png": (128, 128, 6),
@@ -163,7 +190,7 @@ class PipboyUiSourceTests(unittest.TestCase):
         for relative, header in expected.items():
             self.assertEqual(png_header(ASSETS / relative), header)
         frames = list((ASSETS / "animation").glob("*/*.png"))
-        self.assertEqual(len(frames), 40)
+        self.assertEqual(len(frames), 80)
         for frame in frames:
             self.assertEqual(png_header(frame), (512, 512, 6))
         self.assertIn('background-image: url("assets/ui/device-shell-v3.png")', CSS)
@@ -186,26 +213,40 @@ class PipboyUiSourceTests(unittest.TestCase):
         self.assertIn("this._animationLoop?.stop()", stop)
         self.assertIn("this._frameAnimationLoop?.stop()", stop)
 
-    def test_fallout_2_uses_fast_one_shot_animation(self):
+    def test_fallout_2_uses_staged_good_one_shot_animation(self):
         manifest = json.loads(
             (EXTENSION / "themes" / "fallout-2" / "theme.json").read_text(
                 encoding="utf-8"
             )
         )
         animation = manifest["frameAnimation"]
-        self.assertEqual(animation["intervalMs"], 80)
+        self.assertEqual(animation["intervalMs"], 36)
+        self.assertEqual(animation["intervalMsByStatus"], {"good": 28})
         self.assertEqual(animation["playback"], "once")
-        self.assertEqual(9 * animation["intervalMs"], 720)
-        for status in ("good", "worried", "critical", "dead"):
-            self.assertEqual(len(animation["frames"][status]), 10)
+        self.assertEqual(31 * animation["intervalMsByStatus"]["good"], 868)
+        self.assertEqual(len(animation["frames"]["good"]), 32)
+        self.assertEqual(manifest["art"]["good"], "assets/animation/good/32.png")
+        for status in ("worried", "critical", "dead"):
+            self.assertEqual(len(animation["frames"][status]), 16)
+            self.assertEqual(15 * animation["intervalMs"], 540)
+            self.assertEqual(manifest["art"][status], f"assets/animation/{status}/16.png")
+        self.assertIn(
+            "frameAnimationInterval(\n                frameAnimation, this._menuArtStatus",
+            SOURCE,
+        )
 
-    def test_source_stabilizer_contract(self):
-        stabilizer = STABILIZER.read_text(encoding="utf-8")
-        self.assertIn("FILTER_WEIGHTS = (1, 2, 3, 2, 1)", stabilizer)
-        self.assertIn("TARGET_BASELINE = 480", stabilizer)
-        self.assertIn("MAX_ANCHOR_STEP = 4.0", stabilizer)
-        self.assertIn("ensure_transparency", stabilizer)
-        self.assertIn("Image.Resampling.LANCZOS", stabilizer)
+    def test_deterministic_rig_renderer_contract(self):
+        renderer = RIG_RENDERER.read_text(encoding="utf-8")
+        config = json.loads(RIG_CONFIG.read_text(encoding="utf-8"))
+        self.assertEqual(config["frameCount"], 16)
+        self.assertEqual(config["intervalMs"], 50)
+        self.assertEqual(config["baseline"], 480)
+        self.assertIn('SUPERSAMPLE", "4"', renderer)
+        self.assertIn("def ease(value", renderer)
+        self.assertIn("def keyframes(value", renderer)
+        self.assertIn("Image.Resampling.LANCZOS", renderer)
+        self.assertIn("verify_against", renderer)
+        self.assertNotIn("optical flow", renderer.lower())
 
     def test_lamps_have_no_runtime_actor_or_timer(self):
         runtime = SOURCE + CSS

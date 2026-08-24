@@ -47,18 +47,27 @@ export function statusForRemaining(value) {
     return 'good';
 }
 
-export function mainCodexBucket(payload) {
+export function mainAgentBucket(payload) {
     const ratePayload = payload?.rateLimits;
     if (!ratePayload || typeof ratePayload !== 'object')
         return null;
 
     const direct = ratePayload.rateLimits;
-    if (direct && typeof direct === 'object' &&
-        (!direct.limitId || direct.limitId === 'codex'))
+    if (direct && typeof direct === 'object')
         return direct;
 
-    const codex = ratePayload.rateLimitsByLimitId?.codex;
-    return codex && typeof codex === 'object' ? codex : null;
+    const byId = ratePayload.rateLimitsByLimitId;
+    if (!byId || typeof byId !== 'object')
+        return null;
+    for (const id of ['codex', 'claude']) {
+        if (byId[id] && typeof byId[id] === 'object')
+            return byId[id];
+    }
+    return null;
+}
+
+export function mainCodexBucket(payload) {
+    return mainAgentBucket(payload);
 }
 
 export function mainCodexRemaining(payload) {
@@ -76,7 +85,7 @@ export function mainCodexRemaining(payload) {
 }
 
 export function primaryCodexWindow(payload) {
-    const primary = mainCodexBucket(payload)?.primary;
+    const primary = mainAgentBucket(payload)?.primary;
     return primary && typeof primary === 'object' ? primary : null;
 }
 
@@ -190,8 +199,22 @@ function validateFrameAnimation(frameAnimation) {
         return {ok: false, error: 'frameAnimation must be an object'};
 
     const intervalMs = Number(frameAnimation.intervalMs);
-    if (!Number.isInteger(intervalMs) || intervalMs < 50 || intervalMs > 5000)
-        return {ok: false, error: 'frameAnimation.intervalMs must be 50..5000'};
+    if (!Number.isInteger(intervalMs) || intervalMs < 20 || intervalMs > 5000)
+        return {ok: false, error: 'frameAnimation.intervalMs must be 20..5000'};
+    const intervalMsByStatus = {};
+    if (frameAnimation.intervalMsByStatus !== undefined) {
+        const overrides = frameAnimation.intervalMsByStatus;
+        if (!overrides || typeof overrides !== 'object' || Array.isArray(overrides))
+            return {ok: false, error: 'frameAnimation.intervalMsByStatus must be an object'};
+        for (const status of Object.keys(overrides)) {
+            if (!THEME_STATUS_KEYS.includes(status))
+                return {ok: false, error: `unknown frameAnimation interval status: ${status}`};
+            const value = Number(overrides[status]);
+            if (!Number.isInteger(value) || value < 20 || value > 5000)
+                return {ok: false, error: `frameAnimation.intervalMsByStatus.${status} must be 20..5000`};
+            intervalMsByStatus[status] = value;
+        }
+    }
     if (frameAnimation.playback !== 'once')
         return {ok: false, error: 'frameAnimation.playback must be once'};
     if (!frameAnimation.frames || typeof frameAnimation.frames !== 'object')
@@ -200,16 +223,21 @@ function validateFrameAnimation(frameAnimation) {
     const frames = {};
     for (const status of THEME_STATUS_KEYS) {
         const paths = frameAnimation.frames[status];
-        if (!Array.isArray(paths) || paths.length < 2 || paths.length > 10)
-            return {ok: false, error: `frameAnimation.frames.${status} must contain 2..10 frames`};
+        if (!Array.isArray(paths) || paths.length < 2 || paths.length > 32)
+            return {ok: false, error: `frameAnimation.frames.${status} must contain 2..32 frames`};
         if (!paths.every(isSafeRelativePath))
             return {ok: false, error: `invalid frameAnimation.frames.${status} path`};
         frames[status] = [...paths];
     }
     return {
         ok: true,
-        frameAnimation: {intervalMs, playback: 'once', frames},
+        frameAnimation: {intervalMs, intervalMsByStatus, playback: 'once', frames},
     };
+}
+
+export function frameAnimationInterval(frameAnimation, status) {
+    return frameAnimation?.intervalMsByStatus?.[status] ??
+        frameAnimation?.intervalMs ?? null;
 }
 
 export function validateThemeManifest(manifest, directoryName = null) {

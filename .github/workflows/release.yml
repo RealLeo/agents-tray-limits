@@ -20,7 +20,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install --yes gjs gnome-shell libglib2.0-bin zip unzip
+          sudo apt-get install --yes gjs gnome-shell libglib2.0-bin python3-pil zip unzip
 
       - name: Verify tag matches extension version
         run: |

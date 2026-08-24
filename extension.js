@@ -12,6 +12,12 @@ import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import {createTranslator} from './i18n.js';
+import {
+    parseProfilesDocument,
+    providerName,
+    providerUrl,
+    resolveActiveProfile,
+} from './profileLogic.js';
 
 import {
     AnimationLoop,
@@ -21,6 +27,7 @@ import {
     RepeatingTimer,
     STATUS_DETAILS,
     StylesheetLifecycle,
+    frameAnimationInterval,
     formatPanelValue,
     mainCodexBucket,
     migrateThemeId,
@@ -30,7 +37,7 @@ import {
 import {loadThemeCatalog, resolveTheme} from './themeLoader.js';
 
 const PANEL_PROGRESS_WIDTH = 270;
-const CHATGPT_CODEX_URL = 'https://chatgpt.com/codex';
+const MAX_PARALLEL_REFRESHES = 3;
 
 const PLAN_NAMES = {
     free: 'Free',
@@ -211,7 +218,13 @@ class UsageIndicator extends PanelMenu.Button {
         this._label.set_style_class_name('agents-tray-limits-panel-label');
         if (severity === 'warning' || severity === 'critical')
             this._label.add_style_class_name(severity);
-        this.accessible_name = this._extension._i18n.t('app.accessibleValue', {value: text});
+        const profile = this._extension._activeProfile();
+        this.accessible_name = profile
+            ? this._extension._i18n.t('app.accessibleProfileValue', {
+                profile: profile.label,
+                value: text,
+            })
+            : this._extension._i18n.t('app.accessibleValue', {value: text});
     }
 });
 
@@ -223,8 +236,10 @@ export default class AgentsTrayLimitsExtension extends Extension {
         this._refreshing = false;
         this._lastRefreshAttempt = 0;
         this._timeoutId = 0;
-        this._process = null;
-        this._cancellable = null;
+        this._profiles = [];
+        this._profileStates = new Map();
+        this._refreshQueue = [];
+        this._runningRefreshes = 0;
         this._menuArt = null;
         this._menuArtFrames = [];
         this._menuArtStatus = null;
@@ -238,6 +253,7 @@ export default class AgentsTrayLimitsExtension extends Extension {
         this._statusClass = null;
 
         this._settings = this.getSettings();
+        this._loadProfiles();
         this._i18n = createTranslator(
             this.path,
             this._settings.get_string('language')
@@ -323,18 +339,18 @@ export default class AgentsTrayLimitsExtension extends Extension {
             this._animationsChangedId = 0;
         }
 
-        if (this._cancellable)
-            this._cancellable.cancel();
-        this._cancellable = null;
-
-        if (this._process) {
-            try {
-                this._process.force_exit();
-            } catch (_error) {
-                // It may have exited between the check and force_exit().
+        for (const state of this._profileStates.values()) {
+            state.cancellable?.cancel();
+            if (state.process) {
+                try {
+                    state.process.force_exit();
+                } catch (_error) {
+                    // It may have exited between the check and force_exit().
+                }
             }
         }
-        this._process = null;
+        this._refreshQueue = [];
+        this._runningRefreshes = 0;
 
         this._stylesheetLifecycle?.clear();
         this._stylesheetLifecycle = null;
@@ -350,6 +366,9 @@ export default class AgentsTrayLimitsExtension extends Extension {
         this._settings = null;
         this._data = null;
         this._error = null;
+        this._profiles = [];
+        this._profileStates?.clear();
+        this._profileStates = null;
         this._interfaceSettings = null;
         this._theme = null;
         this._i18n = null;
@@ -381,6 +400,20 @@ export default class AgentsTrayLimitsExtension extends Extension {
         if (!this._enabled)
             return;
 
+        if (key === 'profiles-json') {
+            this._loadProfiles();
+            this._syncActiveState();
+            this._applyAppearance();
+            this._refresh();
+            return;
+        }
+        if (key === 'active-profile-id') {
+            this._syncActiveState();
+            this._applyAppearance();
+            this._rebuildCurrentMenu();
+            return;
+        }
+
         if (key === 'language') {
             this._i18n = createTranslator(
                 this.path,
@@ -403,6 +436,101 @@ export default class AgentsTrayLimitsExtension extends Extension {
             this._refresh();
         if (key === 'theme-animation')
             this._syncArtAnimation();
+    }
+
+    _loadProfiles() {
+        const parsed = parseProfilesDocument(
+            this._settings.get_string('profiles-json')
+        );
+        if (parsed.migrated)
+            this._settings.set_string('profiles-json', parsed.serialized);
+
+        const previous = this._profileStates ?? new Map();
+        const next = new Map();
+        this._profiles = parsed.document.profiles;
+        for (const profile of this._profiles) {
+            const old = previous.get(profile.id);
+            const signature = `${profile.provider}\0${profile.configDir}`;
+            if (old && old.signature !== signature) {
+                old.cancellable?.cancel();
+                try {
+                    old.process?.force_exit();
+                } catch (_error) {
+                    // The old profile request may already be gone.
+                }
+            }
+            next.set(profile.id, old && old.signature === signature ? old : {
+                signature,
+                data: null,
+                error: null,
+                refreshing: false,
+                queued: false,
+                process: null,
+                cancellable: null,
+                lastRefreshAttempt: 0,
+            });
+        }
+        for (const [id, state] of previous.entries()) {
+            if (next.has(id))
+                continue;
+            state.cancellable?.cancel();
+            try {
+                state.process?.force_exit();
+            } catch (_error) {
+                // The removed profile process may already be gone.
+            }
+        }
+        this._profileStates = next;
+
+        const active = resolveActiveProfile(
+            this._profiles,
+            this._settings.get_string('active-profile-id')
+        );
+        if (active && this._settings.get_string('active-profile-id') !== active.id)
+            this._settings.set_string('active-profile-id', active.id);
+        this._syncActiveState();
+    }
+
+    _activeProfile() {
+        if (!this._settings)
+            return null;
+        return resolveActiveProfile(
+            this._profiles,
+            this._settings.get_string('active-profile-id')
+        );
+    }
+
+    _activeState() {
+        const profile = this._activeProfile();
+        return profile ? this._profileStates?.get(profile.id) ?? null : null;
+    }
+
+    _isRefreshInProgress() {
+        return [...(this._profileStates?.values() ?? [])]
+            .some(state => state.refreshing || state.queued);
+    }
+
+    _syncActiveState() {
+        const state = this._activeState();
+        this._data = state?.data ?? null;
+        this._error = state?.error ?? null;
+        this._refreshing = state?.refreshing ?? false;
+        this._lastRefreshAttempt = state?.lastRefreshAttempt ?? 0;
+    }
+
+    _selectProfile(profileId) {
+        if (!this._profiles.some(profile => profile.id === profileId))
+            return;
+        this._settings.set_string('active-profile-id', profileId);
+    }
+
+    _rebuildCurrentMenu() {
+        if (this._error)
+            this._buildErrorMenu();
+        else if (this._data)
+            this._buildDataMenu();
+        else
+            this._buildLoadingMenu();
     }
 
     _applyAppearance() {
@@ -598,7 +726,10 @@ export default class AgentsTrayLimitsExtension extends Extension {
             if (!this._frameAnimationSession.shouldPlay(this._menuArtStatus))
                 return;
             this._frameAnimationSession.markPlayed(this._menuArtStatus);
-            this._frameAnimationLoop.start(frameAnimation.intervalMs, this._menuArtFrames);
+            const intervalMs = frameAnimationInterval(
+                frameAnimation, this._menuArtStatus,
+            );
+            this._frameAnimationLoop.start(intervalMs, this._menuArtFrames);
             return;
         }
 
@@ -632,87 +763,139 @@ export default class AgentsTrayLimitsExtension extends Extension {
     }
 
     _refresh() {
-        if (!this._enabled || this._refreshing)
+        if (!this._enabled)
             return;
+        const pythonPath = GLib.file_test('/usr/bin/python3', GLib.FileTest.IS_EXECUTABLE)
+            ? '/usr/bin/python3'
+            : GLib.find_program_in_path('python3');
+        if (!pythonPath) {
+            for (const profile of this._profiles) {
+                this._finishProfileWithError(profile.id, {
+                    errorCode: 'python_not_found',
+                    message: this._i18n.t('errors.python_not_found'),
+                });
+            }
+            return;
+        }
 
-        this._refreshing = true;
-        this._lastRefreshAttempt = Math.floor(Date.now() / 1000);
-        if (!this._data)
-            this._buildLoadingMenu();
-        else if (this._error)
-            this._buildErrorMenu();
-        else
-            this._buildDataMenu();
+        for (const profile of this._profiles) {
+            const state = this._profileStates.get(profile.id);
+            if (!state || state.refreshing || state.queued)
+                continue;
+            state.refreshing = true;
+            state.queued = true;
+            state.error = null;
+            state.lastRefreshAttempt = Math.floor(Date.now() / 1000);
+            this._refreshQueue.push(profile.id);
+        }
+        this._syncActiveState();
+        this._rebuildCurrentMenu();
+        this._updatePanelText();
+        this._drainRefreshQueue(pythonPath);
+    }
 
+    _drainRefreshQueue(pythonPath = null) {
+        if (!this._enabled)
+            return;
+        const executable = pythonPath ?? (
+            GLib.file_test('/usr/bin/python3', GLib.FileTest.IS_EXECUTABLE)
+                ? '/usr/bin/python3'
+                : GLib.find_program_in_path('python3')
+        );
+        while (executable && this._runningRefreshes < MAX_PARALLEL_REFRESHES &&
+            this._refreshQueue.length > 0) {
+            const profileId = this._refreshQueue.shift();
+            const profile = this._profiles.find(item => item.id === profileId);
+            const state = this._profileStates.get(profileId);
+            if (!profile || !state)
+                continue;
+            state.queued = false;
+            this._startProfileRefresh(profile, state, executable);
+        }
+    }
+
+    _startProfileRefresh(profile, state, pythonPath) {
         const helperPath = GLib.build_filenamev([
             this.path,
             'bin',
             'agents-tray-limits-helper.py',
         ]);
-        const pythonPath = GLib.file_test('/usr/bin/python3', GLib.FileTest.IS_EXECUTABLE)
-            ? '/usr/bin/python3'
-            : GLib.find_program_in_path('python3');
-
-        if (!pythonPath) {
-            this._finishWithError({
-                errorCode: 'python_not_found',
-                message: this._i18n.t('errors.python_not_found'),
-            });
-            return;
-        }
-
-        const argv = [pythonPath, helperPath, '--timeout', '15'];
+        const argv = [
+            pythonPath,
+            helperPath,
+            '--timeout',
+            '15',
+            '--provider',
+            profile.provider,
+            '--profile-id',
+            profile.id,
+        ];
+        if (profile.configDir)
+            argv.push('--config-dir', profile.configDir);
         const configuredCodex = this._settings.get_string('codex-binary').trim();
-        if (configuredCodex)
+        if (profile.provider === 'codex' && configuredCodex)
             argv.push('--codex-bin', configuredCodex);
 
+        this._runningRefreshes++;
         try {
-            this._cancellable = new Gio.Cancellable();
-            this._process = Gio.Subprocess.new(
+            state.cancellable = new Gio.Cancellable();
+            state.process = Gio.Subprocess.new(
                 argv,
                 Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE
             );
-            this._process.communicate_utf8_async(
+            state.process.communicate_utf8_async(
                 null,
-                this._cancellable,
-                (process, result) => this._onHelperFinished(process, result)
+                state.cancellable,
+                (process, result) => this._onProfileHelperFinished(
+                    profile.id,
+                    state,
+                    process,
+                    result
+                )
             );
         } catch (error) {
-            this._finishWithError({
+            this._runningRefreshes--;
+            this._finishProfileWithError(profile.id, {
                 errorCode: 'helper_start_failed',
                 message: this._i18n.t('errors.helper_start_failed'),
                 details: error.message,
             });
+            this._drainRefreshQueue(pythonPath);
         }
     }
 
-    _onHelperFinished(process, result) {
-        if (!this._enabled)
-            return;
-
+    _onProfileHelperFinished(profileId, requestState, process, result) {
         let stdout = '';
         let stderr = '';
         try {
             [, stdout, stderr] = process.communicate_utf8_finish(result);
         } catch (error) {
-            if (error.matches?.(Gio.io_error_quark(), Gio.IOErrorEnum.CANCELLED))
-                return;
-            this._finishWithError({
-                errorCode: 'helper_failed',
-                message: this._i18n.t('errors.helper_failed'),
-                details: error.message,
-            });
+            if (this._profileStates?.get(profileId) === requestState &&
+                !error.matches?.(Gio.io_error_quark(), Gio.IOErrorEnum.CANCELLED)) {
+                this._finishProfileWithError(profileId, {
+                    errorCode: 'helper_failed',
+                    message: this._i18n.t('errors.helper_failed'),
+                    details: error.message,
+                });
+            }
             return;
         } finally {
-            this._process = null;
-            this._cancellable = null;
+            requestState.process = null;
+            requestState.cancellable = null;
+            this._runningRefreshes = Math.max(0, this._runningRefreshes - 1);
+            this._drainRefreshQueue();
         }
+
+        if (!this._enabled)
+            return;
+        if (this._profileStates.get(profileId) !== requestState)
+            return;
 
         let payload;
         try {
             payload = JSON.parse((stdout ?? '').trim());
         } catch (error) {
-            this._finishWithError({
+            this._finishProfileWithError(profileId, {
                 errorCode: 'invalid_helper_response',
                 message: this._i18n.t('errors.invalid_helper_response'),
                 details: (stderr || stdout || error.message).trim().slice(-1200),
@@ -721,31 +904,44 @@ export default class AgentsTrayLimitsExtension extends Extension {
         }
 
         if (!payload?.ok) {
-            this._finishWithError(payload ?? {
+            this._finishProfileWithError(profileId, payload ?? {
                 errorCode: 'unknown_error',
                 message: this._i18n.t('errors.unknown_error'),
             });
             return;
         }
 
-        this._refreshing = false;
-        this._error = null;
-        this._data = payload;
-        this._updatePanelText();
-        this._buildDataMenu();
+        const state = this._profileStates.get(profileId);
+        if (!state)
+            return;
+        state.refreshing = false;
+        state.error = null;
+        state.data = payload;
+        this._profileStateChanged(profileId);
     }
 
-    _finishWithError(error) {
-        this._refreshing = false;
-        this._process = null;
-        this._cancellable = null;
-        this._error = error;
+    _finishProfileWithError(profileId, error) {
+        const state = this._profileStates?.get(profileId);
+        if (!state)
+            return;
+        state.refreshing = false;
+        state.queued = false;
+        state.process = null;
+        state.cancellable = null;
+        state.error = error;
         const code = String(error?.errorCode ?? 'unknown_error');
         const technical = String(error?.details ?? error?.message ?? '').trim();
         if (technical)
-            console.error(`[Agents Tray Limits] ${code}: ${technical}`);
-        this._updatePanelText();
-        this._buildErrorMenu();
+            console.error(`[Agents Tray Limits] ${profileId} ${code}: ${technical}`);
+        this._profileStateChanged(profileId);
+    }
+
+    _profileStateChanged(profileId) {
+        if (this._activeProfile()?.id === profileId) {
+            this._syncActiveState();
+            this._updatePanelText();
+        }
+        this._rebuildCurrentMenu();
     }
 
     _updatePanelText() {
@@ -803,11 +999,13 @@ export default class AgentsTrayLimitsExtension extends Extension {
         this._prepareMenu();
         if (this._usesPipboyLayout()) {
             this._beginPipboyLayout(null, null, 'loading');
+            this._addProfileSelector();
             this._addHeader('PIP-BOY 2000', this._i18n.t('menu.connecting'));
             this._addMessage(this._i18n.t('menu.loading'));
             this._endPipboyLayout();
             return;
         }
+        this._addProfileSelector();
         this._addHeader(this._i18n.t('app.name'), this._i18n.t('menu.connecting'));
         this._addMessage(this._i18n.t('menu.loading'));
         this._addCommonActions(false);
@@ -821,7 +1019,12 @@ export default class AgentsTrayLimitsExtension extends Extension {
         const error = this._error ?? {};
         if (this._usesPipboyLayout())
             this._beginPipboyLayout(null, null, 'error');
-        this._addHeader(this._i18n.t('app.name'), this._i18n.t('menu.unavailable'));
+        this._addProfileSelector();
+        const profile = this._activeProfile();
+        this._addHeader(
+            profile?.label ?? this._i18n.t('app.name'),
+            this._i18n.t('menu.unavailable')
+        );
         this._addMessage(this._errorMessage(error.errorCode, error.message), true);
 
         const hint = this._errorHint(error.errorCode);
@@ -849,13 +1052,10 @@ export default class AgentsTrayLimitsExtension extends Extension {
             return;
         }
 
-        const menu = this._indicator.menu;
         this._prepareMenu();
+        this._addProfileSelector();
 
-        const account = this._data.account ?? {};
-        const plan = planLabel(account.planType);
-        const accountTitle = plan === 'ChatGPT' ? 'ChatGPT' : `ChatGPT ${plan}`;
-        const accountSubtitle = account.email || this._i18n.t('menu.accountViaCodex');
+        const [accountTitle, accountSubtitle] = this._accountHeading();
         this._addHeader(
             accountTitle,
             accountSubtitle,
@@ -904,17 +1104,85 @@ export default class AgentsTrayLimitsExtension extends Extension {
         return this._theme?.layout === 'pipboy-2000';
     }
 
+    _accountHeading() {
+        const profile = this._activeProfile();
+        const account = this._data?.account ?? {};
+        const details = [providerName(profile?.provider)];
+        if (profile?.provider === 'codex') {
+            const plan = planLabel(account.planType);
+            if (plan && plan !== 'ChatGPT')
+                details.push(plan);
+            if (account.email)
+                details.push(account.email);
+        }
+        return [
+            profile?.label ?? this._i18n.t('app.name'),
+            details.filter(Boolean).join(' · '),
+        ];
+    }
+
+    _profileSummary(profile) {
+        const state = this._profileStates.get(profile.id);
+        if (!state)
+            return '—';
+        if (state.refreshing && !state.data)
+            return this._i18n.t('profiles.refreshing');
+        if (state.error)
+            return this._i18n.t('profiles.error');
+        const remaining = primaryCodexRemaining(state.data);
+        if (!Number.isFinite(remaining))
+            return this._i18n.t('profiles.pending');
+        return this._i18n.t('profiles.remaining', {value: Math.round(remaining)});
+    }
+
+    _addProfileSelector() {
+        if (!this._profiles.length)
+            return;
+        const activeId = this._activeProfile()?.id;
+        if (this._contentTarget) {
+            this._addSection(this._i18n.t('profiles.section'));
+            for (const profile of this._profiles) {
+                const selected = profile.id === activeId;
+                const label = `${selected ? '●' : '○'} ${providerName(profile.provider)} · ` +
+                    `${profile.label} — ${this._profileSummary(profile)}`;
+                const button = new St.Button({
+                    label,
+                    reactive: true,
+                    can_focus: true,
+                    track_hover: true,
+                    x_expand: true,
+                    style_class: `agents-tray-limits-profile-button${selected ? ' selected' : ''}`,
+                    accessible_name: this._i18n.t('profiles.select', {profile: profile.label}),
+                });
+                button.connect('clicked', () => this._selectProfile(profile.id));
+                this._contentTarget.add_child(button);
+            }
+            return;
+        }
+
+        this._indicator.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem(
+            this._i18n.t('profiles.section')
+        ));
+        for (const profile of this._profiles) {
+            const selected = profile.id === activeId;
+            const item = new PopupMenu.PopupMenuItem(
+                `${selected ? '●' : '○'} ${providerName(profile.provider)} · ` +
+                `${profile.label} — ${this._profileSummary(profile)}`
+            );
+            item.connect('activate', () => this._selectProfile(profile.id));
+            this._indicator.menu.addMenuItem(item);
+        }
+    }
+
     _buildPipboyDataMenu() {
         this._prepareMenu();
 
         const remaining = primaryCodexRemaining(this._data);
         const status = statusForRemaining(remaining);
         this._beginPipboyLayout(status, remaining, 'normal');
+        this._addProfileSelector();
 
-        const account = this._data.account ?? {};
-        const plan = planLabel(account.planType);
-        const accountTitle = plan === 'ChatGPT' ? 'ChatGPT' : `ChatGPT ${plan}`;
-        const accountSubtitle = account.email || this._i18n.t('menu.accountViaCodex');
+        const [accountTitle, accountSubtitle] = this._accountHeading();
         this._addHeader(
             accountTitle,
             accountSubtitle,
@@ -1071,14 +1339,15 @@ export default class AgentsTrayLimitsExtension extends Extension {
             'REFRESH',
             this._i18n.t('a11y.refresh'),
             () => this._refresh(),
-            !this._refreshing
+            !this._isRefreshInProgress()
         ));
+        const activeProvider = this._activeProfile()?.provider ?? 'codex';
         buttons.add_child(this._createPipboyButton(
-            'CODEX',
-            this._i18n.t('a11y.openCodex'),
+            activeProvider === 'claude' ? 'CLAUDE' : 'CODEX',
+            this._i18n.t('a11y.openProvider', {provider: providerName(activeProvider)}),
             () => {
                 this._indicator.menu.close();
-                this._openUrl(CHATGPT_CODEX_URL);
+                this._openUrl(providerUrl(activeProvider));
             }
         ));
         buttons.add_child(this._createPipboyButton(
@@ -1596,24 +1865,29 @@ export default class AgentsTrayLimitsExtension extends Extension {
         return item;
     }
 
-    _addCommonActions(includeOpenCodex) {
+    _addCommonActions(includeOpenProvider) {
         const menu = this._indicator.menu;
         menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
         const refreshItem = new PopupMenu.PopupImageMenuItem(
-            this._i18n.t(this._refreshing ? 'actions.refreshing' : 'actions.refresh'),
+            this._i18n.t(this._isRefreshInProgress()
+                ? 'actions.refreshing'
+                : 'actions.refresh'),
             'view-refresh-symbolic'
         );
-        refreshItem.sensitive = !this._refreshing;
+        refreshItem.sensitive = !this._isRefreshInProgress();
         refreshItem.connect('activate', () => this._refresh());
         menu.addMenuItem(refreshItem);
 
-        if (includeOpenCodex) {
+        if (includeOpenProvider) {
+            const activeProvider = this._activeProfile()?.provider ?? 'codex';
             const openItem = new PopupMenu.PopupImageMenuItem(
-                this._i18n.t('actions.openCodex'),
+                this._i18n.t('actions.openProvider', {
+                    provider: providerName(activeProvider),
+                }),
                 'web-browser-symbolic'
             );
-            openItem.connect('activate', () => this._openUrl(CHATGPT_CODEX_URL));
+            openItem.connect('activate', () => this._openUrl(providerUrl(activeProvider)));
             menu.addMenuItem(openItem);
         }
 
