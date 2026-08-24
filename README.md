@@ -1,11 +1,48 @@
-# Agents Tray Limits
+<div align="center">
+
+<h1>☢ Agents Tray Limits</h1>
+
+<p><strong><code>PIP-BOY 2000 // MULTI-PROFILE RATE-LIMIT MONITOR</code></strong></p>
+
+<p>
+  <a href="https://github.com/RealLeo/agents-tray-limits/actions/workflows/ci.yml"><img alt="CI status" src="https://img.shields.io/github/actions/workflow/status/RealLeo/agents-tray-limits/ci.yml?branch=main&amp;style=for-the-badge&amp;label=CI&amp;logo=github&amp;logoColor=white&amp;color=3f873c"></a>
+  <a href="https://github.com/RealLeo/agents-tray-limits/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/RealLeo/agents-tray-limits?display_name=tag&amp;sort=semver&amp;style=for-the-badge&amp;label=release&amp;color=8b6b3f"></a>
+  <a href="#requirements"><img alt="GNOME Shell 45 to 50" src="https://img.shields.io/badge/GNOME_Shell-45--50-476b38?style=for-the-badge&amp;logo=gnome&amp;logoColor=white"></a>
+  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-b0843e?style=for-the-badge"></a>
+</p>
+
+<p><strong>Codex and Claude Code subscription limits — always visible in GNOME Shell.</strong></p>
+
+<p>
+  <a href="#features">FEATURES</a> ·
+  <a href="#install-from-a-release">INSTALL</a> ·
+  <a href="#profiles-and-sign-in">PROFILES</a> ·
+  <a href="#user-themes">THEMES</a> ·
+  <a href="#privacy">PRIVACY</a>
+</p>
+
+<img src="docs/images/agents-tray-limits-fallout-2.png" width="683" alt="Agents Tray Limits Fallout 2 Pip-Boy interface showing a Codex profile with its remaining subscription rate limits">
+
+<p><sub>Fallout 2 interface · selected profile: Codex · display mode: remaining usage</sub></p>
+
+</div>
+
+> [!IMPORTANT]
+> **UNOFFICIAL COMMUNITY BUILD // LEGAL NOTICE**<br>
+> This project is not affiliated with, endorsed by, or sponsored by OpenAI, Anthropic, Bethesda Softworks, ZeniMax Media, GNOME, or their affiliates. See [Licensing and artwork](#licensing-and-artwork) before redistributing the extension.
+
+<table>
+  <tr>
+    <td width="33%" align="center"><strong>☢ TWO PROVIDERS</strong><br><code>CODEX + CLAUDE CODE</code><br><sub>One local monitor for both CLIs</sub></td>
+    <td width="33%" align="center"><strong>▣ MULTI-PROFILE</strong><br><code>PERSONAL + WORK</code><br><sub>Isolated accounts, instant switching</sub></td>
+    <td width="33%" align="center"><strong>◉ THREE INTERFACES</strong><br><code>FALLOUT 2 + FALLOUT 3 + CLASSIC</code><br><sub>From native GNOME to full Pip-Boy</sub></td>
+  </tr>
+</table>
 
 Agents Tray Limits is a GNOME Shell extension that shows Codex and Claude Code subscription rate limits in the top panel. One indicator follows the selected profile, while its menu summarizes every configured profile and switches between them instantly.
 
-> [!IMPORTANT]
-> This is an unofficial community project. It is not affiliated with, endorsed by, or sponsored by OpenAI, Anthropic, Bethesda Softworks, ZeniMax Media, GNOME, or their affiliates. See [Licensing and artwork](#licensing-and-artwork) before redistributing the extension.
-
-## Features
+<a id="features"></a>
+## 01 // FEATURES
 
 - Explicit Codex and Claude Code profiles with isolated configuration directories.
 - A compact panel value such as `65% · reset 4d 22h`, calculated from the selected profile's primary window.
@@ -24,20 +61,25 @@ Agents Tray Limits is a GNOME Shell extension that shows Codex and Claude Code s
 
 The extension reports only subscription limits exposed by Codex App Server or Claude Code's documented status-line input. It does not scrape web pages, report API billing, or switch the account used by an already-running CLI session.
 
-## Requirements
+<a id="requirements"></a>
+## 02 // REQUIREMENTS
 
-- GNOME Shell 45–50;
-- Python 3;
-- Codex CLI and a session authenticated with **Sign in with ChatGPT**, for Codex profiles; and/or
-- Claude Code with a signed-in session, for Claude profiles.
+| System component | Field requirement |
+| --- | --- |
+| **GNOME Shell** | Versions 45–50 |
+| **Runtime** | Python 3 |
+| **Codex profiles** | Codex CLI authenticated with **Sign in with ChatGPT** |
+| **Claude profiles** | Claude Code with a signed-in session |
 
-Check your GNOME version:
+### CHECK SYSTEM VERSION
 
 ```bash
 gnome-shell --version
 ```
 
-For Codex profiles, install and start Codex using the official installer:
+### CONNECT CODEX
+
+Install and start Codex using the official installer:
 
 ```bash
 curl -fsSL https://chatgpt.com/codex/install.sh | sh
@@ -46,9 +88,12 @@ codex
 
 Choose **Sign in with ChatGPT** during authentication. An API-key-only or Bedrock login cannot expose ChatGPT subscription limits.
 
-For Claude profiles, install Claude Code using its official instructions. The extension does not start interactive Codex or Claude sessions; it only starts the local Codex App Server and reads locally collected Claude status-line data.
+### CONNECT CLAUDE CODE
 
-## Install from a release
+Install Claude Code using its official instructions. The extension does not start interactive Codex or Claude sessions; it only starts the local Codex App Server and reads locally collected Claude status-line data.
+
+<a id="install-from-a-release"></a>
+## 03 // INSTALL FROM A RELEASE
 
 1. Download `agents-tray-limits@realleo.zip` from the [latest release](https://github.com/RealLeo/agents-tray-limits/releases/latest).
 2. Install and enable the extension:
@@ -74,7 +119,8 @@ gnome-extensions disable chatgpt-usage@realleo
 
 Agents Tray Limits is a separate extension and does not import the former extension's settings automatically.
 
-## Install from source
+<a id="install-from-source"></a>
+## 04 // INSTALL FROM SOURCE
 
 ```bash
 git clone https://github.com/RealLeo/agents-tray-limits.git
@@ -102,23 +148,25 @@ To uninstall:
 ./uninstall.sh
 ```
 
-## Settings
+<a id="settings"></a>
+## 05 // SETTINGS
 
-The preferences window provides:
-
-- **Language:** System, English, Russian, German, French, or Simplified Chinese. System mode is the default; unsupported system languages fall back to English.
-- **Display:** show either the remaining or used percentage.
-- **Refresh interval:** from one minute to one hour.
-- **Panel icon:** show or hide the state icon after the panel text.
-- **Theme:** choose a built-in or user theme. `fallout-2` is selected on new installations; invalid or missing themes safely fall back to `classic`.
-- **Theme animation:** disable the large menu artwork animation. GNOME's system animation preference is also respected.
-- **Detailed limits and tokens:** show all returned limit groups and token statistics.
-- **Profiles:** create, edit, delete, and select Codex or Claude Code profiles. Names must be unique. A non-default directory must be absolute or start with `~/`.
-- **Codex CLI path:** explicitly select the Codex launcher if GNOME Shell cannot see your normal terminal `PATH`.
+| Control | Terminal function |
+| --- | --- |
+| **Language** | System, English, Russian, German, French, or Simplified Chinese. System mode is the default; unsupported system languages fall back to English. |
+| **Display** | Show either the remaining or used percentage. |
+| **Refresh interval** | Select an automatic refresh interval from one minute to one hour. |
+| **Panel icon** | Show or hide the state icon after the panel text. |
+| **Theme** | Choose a built-in or user theme. `fallout-2` is selected on new installations; invalid or missing themes safely fall back to `classic`. |
+| **Theme animation** | Disable the large menu artwork animation. GNOME's system animation preference is also respected. |
+| **Detailed limits and tokens** | Show all returned limit groups and token statistics. |
+| **Profiles** | Create, edit, delete, and select Codex or Claude Code profiles. Names must be unique. A non-default directory must be absolute or start with `~/`. |
+| **Codex CLI path** | Explicitly select the Codex launcher if GNOME Shell cannot see your normal terminal `PATH`. |
 
 Language changes update the panel and an open menu without requesting fresh data. Stable helper errors are translated; unknown technical details remain available in the journal.
 
-## Profiles and sign-in
+<a id="profiles-and-sign-in"></a>
+## 06 // PROFILES AND SIGN-IN
 
 An existing single-account installation is migrated on first run to a profile named **Codex**. Its empty `configDir` means the standard `~/.codex` directory. The equivalent default for Claude Code is `~/.claude`.
 
@@ -142,7 +190,8 @@ The first Claude limit appears after that profile makes an API request and Claud
 
 Removing a profile never deletes its configuration directory, history, or credentials. Removing a monitored Claude profile first restores its previous status line; a conflict is reported rather than overwriting a status line changed independently.
 
-## How status is calculated
+<a id="how-status-is-calculated"></a>
+## 07 // STATUS CALCULATION
 
 The top panel, character state, detailed limits, and token statistics use only the selected profile. Switching profiles uses already loaded data and does not trigger a new request.
 
@@ -157,7 +206,8 @@ Character states are based on the **remaining** primary percentage, even when th
 | `21–50%` | Worried |
 | `51–100%` | Good |
 
-## User themes
+<a id="user-themes"></a>
+## 08 // USER THEMES
 
 Place each theme in its own directory below:
 
@@ -197,7 +247,11 @@ All manifest paths must resolve to regular raster files inside the theme directo
 
 Theme names and descriptions from user manifests are displayed exactly as authored. Built-in theme metadata follows the selected interface language.
 
-## Privacy
+<a id="privacy"></a>
+## 09 // PRIVACY
+
+> [!NOTE]
+> **LOCAL-DATA PROTOCOL** — account data stays on the machine and credentials remain under the control of the official CLIs.
 
 For each Codex profile, Agents Tray Limits starts a separate local `codex app-server` with the corresponding `CODEX_HOME` and uses its account, rate-limit, and token-usage read methods. Authentication remains managed by Codex CLI.
 
@@ -214,7 +268,8 @@ The extension:
 
 The Claude backup contains the original local `statusLine` value so it can be restored exactly. Deleting a profile or uninstalling the extension does not delete the profile's configuration directory, history, or credentials.
 
-## Troubleshooting
+<a id="troubleshooting"></a>
+## 10 // TROUBLESHOOTING
 
 Run the installed helper directly:
 
@@ -222,20 +277,22 @@ Run the installed helper directly:
 /usr/bin/python3 ~/.local/share/gnome-shell/extensions/agents-tray-limits@realleo/bin/agents-tray-limits-helper.py --pretty
 ```
 
-A successful response includes `"ok": true`. Common errors include:
+A successful response includes `"ok": true`.
 
-- `codex_not_found`: install Codex or set its path in preferences;
-- `not_logged_in`: run `codex` and sign in with ChatGPT;
-- `unsupported_auth`: switch from API-key or Bedrock authentication to ChatGPT authentication;
-- `codex_too_old`: update Codex CLI;
-- `app_server_stopped`: check that the Codex launcher uses a compatible Node.js runtime;
-- `invalid_profile_path`: use an absolute path or a path beginning with `~/`;
-- `claude_cache_missing`: enable the collector, then make an API request from that Claude profile;
-- `claude_limits_unavailable`: Claude did not include the documented `rate_limits` fields;
-- `claude_limits_stale`: run that Claude profile so it can report a fresh post-reset value;
-- `claude_settings_invalid`: repair `settings.json`; the extension deliberately did not overwrite it;
-- `claude_monitor_conflict`: the status line changed independently and must be resolved manually;
-- `timeout`: check connectivity and retry.
+| Diagnostic signal | Recovery protocol |
+| --- | --- |
+| `codex_not_found` | Install Codex or set its path in preferences. |
+| `not_logged_in` | Run `codex` and sign in with ChatGPT. |
+| `unsupported_auth` | Switch from API-key or Bedrock authentication to ChatGPT authentication. |
+| `codex_too_old` | Update Codex CLI. |
+| `app_server_stopped` | Check that the Codex launcher uses a compatible Node.js runtime. |
+| `invalid_profile_path` | Use an absolute path or a path beginning with `~/`. |
+| `claude_cache_missing` | Enable the collector, then make an API request from that Claude profile. |
+| `claude_limits_unavailable` | Claude did not include the documented `rate_limits` fields. |
+| `claude_limits_stale` | Run that Claude profile so it can report a fresh post-reset value. |
+| `claude_settings_invalid` | Repair `settings.json`; the extension deliberately did not overwrite it. |
+| `claude_monitor_conflict` | The status line changed independently and must be resolved manually. |
+| `timeout` | Check connectivity and retry. |
 
 Inspect a specific profile directly:
 
@@ -261,7 +318,8 @@ journalctl --user -f -o cat /usr/bin/gnome-shell
 
 If all user extensions were disabled after a session failure, re-enable the global extension switch and then this extension from the GNOME Extensions application. Do not run a second GNOME Shell process.
 
-## Development
+<a id="development"></a>
+## 11 // DEVELOPMENT
 
 Install the development dependencies available from your distribution: Python 3 with Pillow, Node.js, GJS, GLib schema tools, `zip`, and `unzip`. Then run:
 
@@ -273,20 +331,21 @@ unzip -t dist/agents-tray-limits@realleo.zip
 
 `make check` validates JavaScript, Python, schemas, translations, themes, UI source contracts, the helper test suite, and the deterministic Fallout 2 animation render. `make pack` creates a clean runtime archive with compiled schemas and a checksum.
 
-The Fallout 2 theme uses a build-time layered 2D rig. Its 16-frame, 50 ms one-shot sequences are rendered from shared body parts with fixed joint pivots and cubic easing, rather than independently generated frames. The rig sources and renderer live under `tools/animation-rig/` and are excluded from the runtime ZIP.
+The Fallout 2 theme uses a build-time layered 2D rig. The `good` state uses 32 frames at a 28 ms runtime interval; `worried`, `critical`, and `dead` use 16 frames at the base 36 ms interval. Every one-shot sequence is rendered from shared body parts with fixed joint pivots and cubic easing rather than independently generated frames. The rig sources and renderer live under `tools/animation-rig/` and are excluded from the runtime ZIP.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution rules and [SECURITY.md](SECURITY.md) for private vulnerability reporting.
 
-## Official documentation
+<a id="official-documentation"></a>
+## 12 // OFFICIAL DOCUMENTATION
 
-- [Codex App Server](https://developers.openai.com/codex/app-server)
-- [Codex CLI](https://developers.openai.com/codex/cli)
-- [Codex authentication storage](https://learn.chatgpt.com/docs/auth)
-- [Claude Code environment variables](https://code.claude.com/docs/en/env-vars)
-- [Claude Code status line](https://code.claude.com/docs/en/statusline)
-- [GNOME Shell extension development](https://gjs.guide/extensions/)
+| System | Field manual |
+| --- | --- |
+| **Codex** | [App Server](https://developers.openai.com/codex/app-server) · [CLI](https://developers.openai.com/codex/cli) · [Authentication storage](https://learn.chatgpt.com/docs/auth) |
+| **Claude Code** | [Environment variables](https://code.claude.com/docs/en/env-vars) · [Status line](https://code.claude.com/docs/en/statusline) |
+| **GNOME Shell** | [Extension development guide](https://gjs.guide/extensions/) |
 
-## Licensing and artwork
+<a id="licensing-and-artwork"></a>
+## 13 // LICENSING AND ARTWORK
 
 Source code is available under the [MIT License](LICENSE), copyright © 2026 RealLeo.
 
