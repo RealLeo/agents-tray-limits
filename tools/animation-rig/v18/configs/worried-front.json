@@ -1,0 +1,25 @@
+{
+  "version": 1, "canvas": [512, 512], "renderSize": 2048,
+  "frames": 32, "fps": 36, "intervalMs": 28, "displaySize": 98,
+  "pixelScale": 0.01, "gridStep": 6,
+  "camera": {"type": "PERSP", "distance": 3.5, "planeHeight": 5.12, "centerPixel": [256, 256]},
+  "sourceDir": "../v18/source/master", "referenceFile": "worried-master-v1.png",
+  "bodyFile": "transparent.png", "armFile": "worried-arm-front-v1.png",
+  "blendFile": "../v18/rigs/worried-front.blend", "renderDir": "../v18/render/worried-front",
+  "previewDir": "../v18/previews/worried-front", "previewPrefix": "worried-front",
+  "materials": {"body": "BLENDED", "arm": "BLENDED"},
+  "arm": {
+    "bbox": [149, 153, 250, 243], "frontZ": 0.024, "registerFrontPlane": true,
+    "weightMode": "rigid", "weightFalloff": 15,
+    "shoulder": [214, 165], "elbow": [174, 205], "wrist": [205, 215], "hand": [207, 188],
+    "pole": [135, 215], "poleAngle": 3.141592653589793,
+    "depth": {"upper": 0, "forearm": 0, "hand": 0},
+    "trajectory": [
+      {"frame": 1, "target": [198, 226], "depth": 0, "shoulderCorrective": 0, "elbowCorrective": 0},
+      {"frame": 8, "target": [199, 224], "depth": 0, "shoulderCorrective": 0, "elbowCorrective": 0},
+      {"frame": 18, "target": [201, 220], "depth": 0, "shoulderCorrective": 0, "elbowCorrective": 0},
+      {"frame": 26, "target": [204, 216], "depth": 0, "shoulderCorrective": 0, "elbowCorrective": 0},
+      {"frame": 32, "target": [205, 215], "depth": 0, "shoulderCorrective": 0, "elbowCorrective": 0}
+    ]
+  }
+}

@@ -6,7 +6,22 @@ The project uses the integer version in `metadata.json`; Git release tags use th
 
 ## [Unreleased]
 
-No changes yet.
+## [18] - 2026-08-25
+
+### Changed
+
+- Rebuilt the Fallout 2 `worried` and `critical` scenes as deterministic 32-frame animations matching the accepted `good` pipeline.
+- Made the seated X-eyed `dead` state explicitly static and extended theme manifests to accept one-frame states.
+- Standardized animated Fallout 2 states on a 28 ms frame interval.
+
+### Fixed
+
+- Status art now follows the rounded percentage shown to the user, so a displayed `0%` always selects `dead`.
+- Used-percentage mode is now the exact complement of the rounded remaining percentage.
+
+### Release
+
+- Bumped the extension metadata version to 18.
 
 ## [17] - 2026-08-24
 
@@ -73,7 +88,8 @@ No changes yet.
 - This is a separate extension and does not automatically import settings from `chatgpt-usage@realleo`.
 - The legacy theme ID `pipboy-classic` continues to migrate to `fallout-3`.
 
-[Unreleased]: https://github.com/RealLeo/agents-tray-limits/compare/v17...HEAD
+[Unreleased]: https://github.com/RealLeo/agents-tray-limits/compare/v18...HEAD
+[18]: https://github.com/RealLeo/agents-tray-limits/releases/tag/v18
 [17]: https://github.com/RealLeo/agents-tray-limits/releases/tag/v17
 [16]: https://github.com/RealLeo/agents-tray-limits/releases/tag/v16
 [15]: https://github.com/RealLeo/agents-tray-limits/releases/tag/v15

@@ -32,3 +32,11 @@ Thumbs.db
 /art-source/
 /previews/
 /contact-sheets/
+
+# Version 18 animation build output. Keep the source art, Blender rigs,
+# configuration, and compact motion fixtures; omit generated frame dumps,
+# duplicate runtime sprites, Blender backups, and review-only previews.
+/tools/animation-rig/v18/render/*/raw/
+/tools/animation-rig/v18/render/*/sprites/
+/tools/animation-rig/v18/previews/
+/tools/animation-rig/v18/rigs/*.blend1

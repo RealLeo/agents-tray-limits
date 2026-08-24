@@ -1,0 +1,1071 @@
+{
+  "frames": 32,
+  "fps": 36,
+  "intervalMs": 28,
+  "durationMs": 868,
+  "maxConsecutiveStepDisplayPx": {
+    "shoulder": 0.0,
+    "elbow": 0.1873,
+    "wrist": 0.225,
+    "hand": 0.225,
+    "root": 0.0
+  },
+  "samples": [
+    {
+      "frame": 1,
+      "points": {
+        "shoulder": [
+          188.0,
+          170.0
+        ],
+        "elbow": [
+          247.1297,
+          198.1544
+        ],
+        "wrist": [
+          225.0,
+          252.0
+        ],
+        "hand": [
+          247.0004,
+          242.0
+        ],
+        "root": [
+          256.0,
+          476.0
+        ]
+      },
+      "depthStrength": 0.0,
+      "depthStrengths": {
+        "upper": 0.0,
+        "forearm": 0.0,
+        "hand": 0.0
+      },
+      "handZ": 0.024,
+      "apparentHandScale": 1.0
+    },
+    {
+      "frame": 2,
+      "points": {
+        "shoulder": [
+          188.0,
+          170.0
+        ],
+        "elbow": [
+          247.1918,
+          198.0236
+        ],
+        "wrist": [
+          225.1108,
+          251.8892
+        ],
+        "hand": [
+          247.1111,
+          241.8893
+        ],
+        "root": [
+          256.0,
+          476.0
+        ]
+      },
+      "depthStrength": 0.0,
+      "depthStrengths": {
+        "upper": 0.0,
+        "forearm": 0.0,
+        "hand": 0.0
+      },
+      "handZ": 0.024,
+      "apparentHandScale": 1.0
+    },
+    {
+      "frame": 3,
+      "points": {
+        "shoulder": [
+          188.0,
+          170.0
+        ],
+        "elbow": [
+          247.3505,
+          197.686
+        ],
+        "wrist": [
+          225.3965,
+          251.6035
+        ],
+        "hand": [
+          247.3969,
+          241.6035
+        ],
+        "root": [
+          256.0,
+          476.0
+        ]
+      },
+      "depthStrength": 0.0,
+      "depthStrengths": {
+        "upper": 0.0,
+        "forearm": 0.0,
+        "hand": 0.0
+      },
+      "handZ": 0.024,
+      "apparentHandScale": 1.0
+    },
+    {
+      "frame": 4,
+      "points": {
+        "shoulder": [
+          188.0,
+          170.0
+        ],
+        "elbow": [
+          247.564,
+          197.2235
+        ],
+        "wrist": [
+          225.7872,
+          251.2128
+        ],
+        "hand": [
+          247.7875,
+          241.2129
+        ],
+        "root": [
+          256.0,
+          476.0
+        ]
+      },
+      "depthStrength": 0.0,
+      "depthStrengths": {
+        "upper": 0.0,
+        "forearm": 0.0,
+        "hand": 0.0
+      },
+      "handZ": 0.024,
+      "apparentHandScale": 1.0
+    },
+    {
+      "frame": 5,
+      "points": {
+        "shoulder": [
+          188.0,
+          170.0
+        ],
+        "elbow": [
+          247.7922,
+          196.7187
+        ],
+        "wrist": [
+          226.2128,
+          250.7872
+        ],
+        "hand": [
+          248.2132,
+          240.7872
+        ],
+        "root": [
+          256.0,
+          476.0
+        ]
+      },
+      "depthStrength": 0.0,
+      "depthStrengths": {
+        "upper": 0.0,
+        "forearm": 0.0,
+        "hand": 0.0
+      },
+      "handZ": 0.024,
+      "apparentHandScale": 1.0
+    },
+    {
+      "frame": 6,
+      "points": {
+        "shoulder": [
+          188.0,
+          170.0
+        ],
+        "elbow": [
+          247.9975,
+          196.2544
+        ],
+        "wrist": [
+          226.6035,
+          250.3965
+        ],
+        "hand": [
+          248.6039,
+          240.3965
+        ],
+        "root": [
+          256.0,
+          476.0
+        ]
+      },
+      "depthStrength": 0.0,
+      "depthStrengths": {
+        "upper": 0.0,
+        "forearm": 0.0,
+        "hand": 0.0
+      },
+      "handZ": 0.024,
+      "apparentHandScale": 1.0
+    },
+    {
+      "frame": 7,
+      "points": {
+        "shoulder": [
+          188.0,
+          170.0
+        ],
+        "elbow": [
+          248.1452,
+          195.9143
+        ],
+        "wrist": [
+          226.8892,
+          250.1108
+        ],
+        "hand": [
+          248.8896,
+          240.1108
+        ],
+        "root": [
+          256.0,
+          476.0
+        ]
+      },
+      "depthStrength": 0.0,
+      "depthStrengths": {
+        "upper": 0.0,
+        "forearm": 0.0,
+        "hand": 0.0
+      },
+      "handZ": 0.024,
+      "apparentHandScale": 1.0
+    },
+    {
+      "frame": 8,
+      "points": {
+        "shoulder": [
+          188.0,
+          170.0
+        ],
+        "elbow": [
+          248.2019,
+          195.7823
+        ],
+        "wrist": [
+          227.0,
+          250.0
+        ],
+        "hand": [
+          249.0004,
+          240.0
+        ],
+        "root": [
+          256.0,
+          476.0
+        ]
+      },
+      "depthStrength": 0.0,
+      "depthStrengths": {
+        "upper": 0.0,
+        "forearm": 0.0,
+        "hand": 0.0
+      },
+      "handZ": 0.024,
+      "apparentHandScale": 1.0
+    },
+    {
+      "frame": 9,
+      "points": {
+        "shoulder": [
+          188.0,
+          170.0
+        ],
+        "elbow": [
+          248.2589,
+          195.6489
+        ],
+        "wrist": [
+          227.112,
+          249.888
+        ],
+        "hand": [
+          249.1124,
+          239.888
+        ],
+        "root": [
+          256.0,
+          476.0
+        ]
+      },
+      "depthStrength": 0.0,
+      "depthStrengths": {
+        "upper": 0.0,
+        "forearm": 0.0,
+        "hand": 0.0
+      },
+      "handZ": 0.024,
+      "apparentHandScale": 1.0
+    },
+    {
+      "frame": 10,
+      "points": {
+        "shoulder": [
+          188.0,
+          170.0
+        ],
+        "elbow": [
+          248.4119,
+          195.2863
+        ],
+        "wrist": [
+          227.416,
+          249.584
+        ],
+        "hand": [
+          249.4164,
+          239.584
+        ],
+        "root": [
+          256.0,
+          476.0
+        ]
+      },
+      "depthStrength": 0.0,
+      "depthStrengths": {
+        "upper": 0.0,
+        "forearm": 0.0,
+        "hand": 0.0
+      },
+      "handZ": 0.024,
+      "apparentHandScale": 1.0
+    },
+    {
+      "frame": 11,
+      "points": {
+        "shoulder": [
+          188.0,
+          170.0
+        ],
+        "elbow": [
+          248.6332,
+          194.7511
+        ],
+        "wrist": [
+          227.864,
+          249.136
+        ],
+        "hand": [
+          249.8643,
+          239.136
+        ],
+        "root": [
+          256.0,
+          476.0
+        ]
+      },
+      "depthStrength": 0.0,
+      "depthStrengths": {
+        "upper": 0.0,
+        "forearm": 0.0,
+        "hand": 0.0
+      },
+      "handZ": 0.024,
+      "apparentHandScale": 1.0
+    },
+    {
+      "frame": 12,
+      "points": {
+        "shoulder": [
+          188.0,
+          170.0
+        ],
+        "elbow": [
+          248.8948,
+          194.1002
+        ],
+        "wrist": [
+          228.408,
+          248.592
+        ],
+        "hand": [
+          250.4083,
+          238.592
+        ],
+        "root": [
+          256.0,
+          476.0
+        ]
+      },
+      "depthStrength": 0.0,
+      "depthStrengths": {
+        "upper": 0.0,
+        "forearm": 0.0,
+        "hand": 0.0
+      },
+      "handZ": 0.024,
+      "apparentHandScale": 1.0
+    },
+    {
+      "frame": 13,
+      "points": {
+        "shoulder": [
+          188.0,
+          170.0
+        ],
+        "elbow": [
+          249.171,
+          193.3904
+        ],
+        "wrist": [
+          229.0,
+          248.0
+        ],
+        "hand": [
+          251.0003,
+          238.0
+        ],
+        "root": [
+          256.0,
+          476.0
+        ]
+      },
+      "depthStrength": 0.0,
+      "depthStrengths": {
+        "upper": 0.0,
+        "forearm": 0.0,
+        "hand": 0.0
+      },
+      "handZ": 0.024,
+      "apparentHandScale": 1.0
+    },
+    {
+      "frame": 14,
+      "points": {
+        "shoulder": [
+          188.0,
+          170.0
+        ],
+        "elbow": [
+          249.4381,
+          192.6795
+        ],
+        "wrist": [
+          229.592,
+          247.408
+        ],
+        "hand": [
+          251.5923,
+          237.408
+        ],
+        "root": [
+          256.0,
+          476.0
+        ]
+      },
+      "depthStrength": 0.0,
+      "depthStrengths": {
+        "upper": 0.0,
+        "forearm": 0.0,
+        "hand": 0.0
+      },
+      "handZ": 0.024,
+      "apparentHandScale": 1.0
+    },
+    {
+      "frame": 15,
+      "points": {
+        "shoulder": [
+          188.0,
+          170.0
+        ],
+        "elbow": [
+          249.6756,
+          192.0253
+        ],
+        "wrist": [
+          230.136,
+          246.864
+        ],
+        "hand": [
+          252.1363,
+          236.864
+        ],
+        "root": [
+          256.0,
+          476.0
+        ]
+      },
+      "depthStrength": 0.0,
+      "depthStrengths": {
+        "upper": 0.0,
+        "forearm": 0.0,
+        "hand": 0.0
+      },
+      "handZ": 0.024,
+      "apparentHandScale": 1.0
+    },
+    {
+      "frame": 16,
+      "points": {
+        "shoulder": [
+          188.0,
+          170.0
+        ],
+        "elbow": [
+          249.8656,
+          191.4861
+        ],
+        "wrist": [
+          230.584,
+          246.416
+        ],
+        "hand": [
+          252.5843,
+          236.416
+        ],
+        "root": [
+          256.0,
+          476.0
+        ]
+      },
+      "depthStrength": 0.0,
+      "depthStrengths": {
+        "upper": 0.0,
+        "forearm": 0.0,
+        "hand": 0.0
+      },
+      "handZ": 0.024,
+      "apparentHandScale": 1.0
+    },
+    {
+      "frame": 17,
+      "points": {
+        "shoulder": [
+          188.0,
+          170.0
+        ],
+        "elbow": [
+          249.9915,
+          191.1199
+        ],
+        "wrist": [
+          230.888,
+          246.112
+        ],
+        "hand": [
+          252.8883,
+          236.112
+        ],
+        "root": [
+          256.0,
+          476.0
+        ]
+      },
+      "depthStrength": 0.0,
+      "depthStrengths": {
+        "upper": 0.0,
+        "forearm": 0.0,
+        "hand": 0.0
+      },
+      "handZ": 0.024,
+      "apparentHandScale": 1.0
+    },
+    {
+      "frame": 18,
+      "points": {
+        "shoulder": [
+          188.0,
+          170.0
+        ],
+        "elbow": [
+          250.0373,
+          190.985
+        ],
+        "wrist": [
+          231.0,
+          246.0
+        ],
+        "hand": [
+          253.0003,
+          236.0
+        ],
+        "root": [
+          256.0,
+          476.0
+        ]
+      },
+      "depthStrength": 0.0,
+      "depthStrengths": {
+        "upper": 0.0,
+        "forearm": 0.0,
+        "hand": 0.0
+      },
+      "handZ": 0.024,
+      "apparentHandScale": 1.0
+    },
+    {
+      "frame": 19,
+      "points": {
+        "shoulder": [
+          188.0,
+          170.0
+        ],
+        "elbow": [
+          250.1114,
+          190.7646
+        ],
+        "wrist": [
+          231.2148,
+          245.8281
+        ],
+        "hand": [
+          253.2152,
+          235.8281
+        ],
+        "root": [
+          256.0,
+          476.0
+        ]
+      },
+      "depthStrength": 0.0,
+      "depthStrengths": {
+        "upper": 0.0,
+        "forearm": 0.0,
+        "hand": 0.0
+      },
+      "handZ": 0.024,
+      "apparentHandScale": 1.0
+    },
+    {
+      "frame": 20,
+      "points": {
+        "shoulder": [
+          188.0,
+          170.0
+        ],
+        "elbow": [
+          250.3025,
+          190.1841
+        ],
+        "wrist": [
+          231.7812,
+          245.375
+        ],
+        "hand": [
+          253.7816,
+          235.375
+        ],
+        "root": [
+          256.0,
+          476.0
+        ]
+      },
+      "depthStrength": 0.0,
+      "depthStrengths": {
+        "upper": 0.0,
+        "forearm": 0.0,
+        "hand": 0.0
+      },
+      "handZ": 0.024,
+      "apparentHandScale": 1.0
+    },
+    {
+      "frame": 21,
+      "points": {
+        "shoulder": [
+          188.0,
+          170.0
+        ],
+        "elbow": [
+          250.562,
+          189.3647
+        ],
+        "wrist": [
+          232.582,
+          244.7343
+        ],
+        "hand": [
+          254.5824,
+          234.7344
+        ],
+        "root": [
+          256.0,
+          476.0
+        ]
+      },
+      "depthStrength": 0.0,
+      "depthStrengths": {
+        "upper": 0.0,
+        "forearm": 0.0,
+        "hand": 0.0
+      },
+      "handZ": 0.024,
+      "apparentHandScale": 1.0
+    },
+    {
+      "frame": 22,
+      "points": {
+        "shoulder": [
+          188.0,
+          170.0
+        ],
+        "elbow": [
+          250.8443,
+          188.428
+        ],
+        "wrist": [
+          233.5,
+          244.0
+        ],
+        "hand": [
+          255.5003,
+          234.0
+        ],
+        "root": [
+          256.0,
+          476.0
+        ]
+      },
+      "depthStrength": 0.0,
+      "depthStrengths": {
+        "upper": 0.0,
+        "forearm": 0.0,
+        "hand": 0.0
+      },
+      "handZ": 0.024,
+      "apparentHandScale": 1.0
+    },
+    {
+      "frame": 23,
+      "points": {
+        "shoulder": [
+          188.0,
+          170.0
+        ],
+        "elbow": [
+          251.1106,
+          187.4944
+        ],
+        "wrist": [
+          234.418,
+          243.2656
+        ],
+        "hand": [
+          256.4183,
+          233.2656
+        ],
+        "root": [
+          256.0,
+          476.0
+        ]
+      },
+      "depthStrength": 0.0,
+      "depthStrengths": {
+        "upper": 0.0,
+        "forearm": 0.0,
+        "hand": 0.0
+      },
+      "handZ": 0.024,
+      "apparentHandScale": 1.0
+    },
+    {
+      "frame": 24,
+      "points": {
+        "shoulder": [
+          188.0,
+          170.0
+        ],
+        "elbow": [
+          251.3299,
+          186.683
+        ],
+        "wrist": [
+          235.2187,
+          242.625
+        ],
+        "hand": [
+          257.2191,
+          232.625
+        ],
+        "root": [
+          256.0,
+          476.0
+        ]
+      },
+      "depthStrength": 0.0,
+      "depthStrengths": {
+        "upper": 0.0,
+        "forearm": 0.0,
+        "hand": 0.0
+      },
+      "handZ": 0.024,
+      "apparentHandScale": 1.0
+    },
+    {
+      "frame": 25,
+      "points": {
+        "shoulder": [
+          188.0,
+          170.0
+        ],
+        "elbow": [
+          251.4778,
+          186.1111
+        ],
+        "wrist": [
+          235.7851,
+          242.1718
+        ],
+        "hand": [
+          257.7855,
+          232.1719
+        ],
+        "root": [
+          256.0,
+          476.0
+        ]
+      },
+      "depthStrength": 0.0,
+      "depthStrengths": {
+        "upper": 0.0,
+        "forearm": 0.0,
+        "hand": 0.0
+      },
+      "handZ": 0.024,
+      "apparentHandScale": 1.0
+    },
+    {
+      "frame": 26,
+      "points": {
+        "shoulder": [
+          188.0,
+          170.0
+        ],
+        "elbow": [
+          251.5324,
+          185.8946
+        ],
+        "wrist": [
+          236.0,
+          242.0
+        ],
+        "hand": [
+          258.0003,
+          232.0
+        ],
+        "root": [
+          256.0,
+          476.0
+        ]
+      },
+      "depthStrength": 0.0,
+      "depthStrengths": {
+        "upper": 0.0,
+        "forearm": 0.0,
+        "hand": 0.0
+      },
+      "handZ": 0.024,
+      "apparentHandScale": 1.0
+    },
+    {
+      "frame": 27,
+      "points": {
+        "shoulder": [
+          188.0,
+          170.0
+        ],
+        "elbow": [
+          251.5764,
+          185.7177
+        ],
+        "wrist": [
+          236.1481,
+          241.8518
+        ],
+        "hand": [
+          258.1485,
+          231.8519
+        ],
+        "root": [
+          256.0,
+          476.0
+        ]
+      },
+      "depthStrength": 0.0,
+      "depthStrengths": {
+        "upper": 0.0,
+        "forearm": 0.0,
+        "hand": 0.0
+      },
+      "handZ": 0.024,
+      "apparentHandScale": 1.0
+    },
+    {
+      "frame": 28,
+      "points": {
+        "shoulder": [
+          188.0,
+          170.0
+        ],
+        "elbow": [
+          251.684,
+          185.2758
+        ],
+        "wrist": [
+          236.5185,
+          241.4814
+        ],
+        "hand": [
+          258.5189,
+          231.4815
+        ],
+        "root": [
+          256.0,
+          476.0
+        ]
+      },
+      "depthStrength": 0.0,
+      "depthStrengths": {
+        "upper": 0.0,
+        "forearm": 0.0,
+        "hand": 0.0
+      },
+      "handZ": 0.024,
+      "apparentHandScale": 1.0
+    },
+    {
+      "frame": 29,
+      "points": {
+        "shoulder": [
+          188.0,
+          170.0
+        ],
+        "elbow": [
+          251.8189,
+          184.7019
+        ],
+        "wrist": [
+          237.0,
+          241.0
+        ],
+        "hand": [
+          259.0003,
+          231.0
+        ],
+        "root": [
+          256.0,
+          476.0
+        ]
+      },
+      "depthStrength": 0.0,
+      "depthStrengths": {
+        "upper": 0.0,
+        "forearm": 0.0,
+        "hand": 0.0
+      },
+      "handZ": 0.024,
+      "apparentHandScale": 1.0
+    },
+    {
+      "frame": 30,
+      "points": {
+        "shoulder": [
+          188.0,
+          170.0
+        ],
+        "elbow": [
+          251.9482,
+          184.1289
+        ],
+        "wrist": [
+          237.4815,
+          240.5185
+        ],
+        "hand": [
+          259.4818,
+          230.5185
+        ],
+        "root": [
+          256.0,
+          476.0
+        ]
+      },
+      "depthStrength": 0.0,
+      "depthStrengths": {
+        "upper": 0.0,
+        "forearm": 0.0,
+        "hand": 0.0
+      },
+      "handZ": 0.024,
+      "apparentHandScale": 1.0
+    },
+    {
+      "frame": 31,
+      "points": {
+        "shoulder": [
+          188.0,
+          170.0
+        ],
+        "elbow": [
+          252.0439,
+          183.6888
+        ],
+        "wrist": [
+          237.8518,
+          240.1481
+        ],
+        "hand": [
+          259.8522,
+          230.1482
+        ],
+        "root": [
+          256.0,
+          476.0
+        ]
+      },
+      "depthStrength": 0.0,
+      "depthStrengths": {
+        "upper": 0.0,
+        "forearm": 0.0,
+        "hand": 0.0
+      },
+      "handZ": 0.024,
+      "apparentHandScale": 1.0
+    },
+    {
+      "frame": 32,
+      "points": {
+        "shoulder": [
+          188.0,
+          170.0
+        ],
+        "elbow": [
+          252.0812,
+          183.5129
+        ],
+        "wrist": [
+          238.0,
+          240.0
+        ],
+        "hand": [
+          260.0003,
+          230.0
+        ],
+        "root": [
+          256.0,
+          476.0
+        ]
+      },
+      "depthStrength": 0.0,
+      "depthStrengths": {
+        "upper": 0.0,
+        "forearm": 0.0,
+        "hand": 0.0
+      },
+      "handZ": 0.024,
+      "apparentHandScale": 1.0
+    }
+  ]
+}

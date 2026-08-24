@@ -36,10 +36,16 @@ function assert(value, message) {
 
 const boundaries = new Map([
     [0, 'dead'],
+    [0.49, 'dead'],
+    [0.5, 'critical'],
     [1, 'critical'],
     [20, 'critical'],
+    [20.49, 'critical'],
+    [20.5, 'worried'],
     [21, 'worried'],
     [50, 'worried'],
+    [50.49, 'worried'],
+    [50.5, 'good'],
     [51, 'good'],
     [100, 'good'],
 ]);
@@ -126,6 +132,26 @@ assertEqual(formatPanelValue({rateLimits: {rateLimits: {
     limitId: 'codex',
     primary: {usedPercent: 20},
 }}}, 'remaining', PANEL_NOW, en), '80% · reset —', 'unknown panel reset');
+const roundedDepletedPayload = {rateLimits: {rateLimits: {
+    limitId: 'codex',
+    primary: {usedPercent: 99.51},
+}}};
+assert(Math.abs(primaryCodexRemaining(roundedDepletedPayload) - 0.49) < 1e-9,
+    'fractional primary remaining is preserved before display rounding');
+assertEqual(statusForRemaining(primaryCodexRemaining(roundedDepletedPayload)), 'dead',
+    'displayed zero remaining must select dead art');
+assertEqual(formatPanelValue(roundedDepletedPayload, 'remaining', PANEL_NOW, en),
+    '0% · reset —', 'remaining display rounds depleted value to zero');
+assertEqual(formatPanelValue(roundedDepletedPayload, 'used', PANEL_NOW, en),
+    '100% · reset —', 'used display and remaining emotion share rounding');
+const halfPercentPayload = {rateLimits: {rateLimits: {
+    limitId: 'codex',
+    primary: {usedPercent: 99.5},
+}}};
+assertEqual(statusForRemaining(primaryCodexRemaining(halfPercentPayload)), 'critical',
+    'half a percent remaining rounds to one percent');
+assertEqual(formatPanelValue(halfPercentPayload, 'used', PANEL_NOW, en),
+    '99% · reset —', 'used display is the complement of rounded remaining');
 assertEqual(formatPanelReset(PANEL_NOW + 2 * 86400, PANEL_NOW, en), '2d',
     'whole day panel reset');
 assertEqual(formatPanelReset(PANEL_NOW + 5 * 3600, PANEL_NOW, en), '5h',
@@ -226,6 +252,22 @@ assert(!validateThemeManifest({
         frames: {...tenFramePaths, dead: undefined},
     },
 }, 'test_theme').ok, 'incomplete frame state accepted');
+const staticDeadManifest = {
+    ...frameManifest,
+    frameAnimation: {
+        ...frameManifest.frameAnimation,
+        frames: {...tenFramePaths, dead: ['frames/dead/16.png']},
+    },
+};
+assert(validateThemeManifest(staticDeadManifest, 'test_theme').ok,
+    'one-frame static state rejected');
+assert(!validateThemeManifest({
+    ...frameManifest,
+    frameAnimation: {
+        ...frameManifest.frameAnimation,
+        frames: {...tenFramePaths, dead: []},
+    },
+}, 'test_theme').ok, 'empty static state accepted');
 assert(!validateThemeManifest({
     ...frameManifest,
     frameAnimation: {
@@ -307,15 +349,13 @@ assert(!realCatalog.has('pipboy-classic'), 'legacy Pip-Boy theme must not be lis
 assertEqual(realCatalog.get('fallout-2').layout, 'pipboy-2000', 'Fallout 2 layout');
 assertEqual(realCatalog.get('fallout-2').animation, null,
     'Fallout 2 must not use transform animation');
-assertEqual(realCatalog.get('fallout-2').frameAnimation.intervalMs, 36,
+assertEqual(realCatalog.get('fallout-2').frameAnimation.intervalMs, 28,
     'Fallout 2 frame interval');
-assertEqual(realCatalog.get('fallout-2').frameAnimation.intervalMsByStatus.good, 28,
-    'Fallout 2 good frame interval');
-assertEqual(realCatalog.get('fallout-2').frameAnimationPaths.good.length, 32,
-    'Fallout 2 good frame count');
-for (const status of ['worried', 'critical', 'dead'])
-    assertEqual(realCatalog.get('fallout-2').frameAnimationPaths[status].length, 16,
+for (const status of ['good', 'worried', 'critical'])
+    assertEqual(realCatalog.get('fallout-2').frameAnimationPaths[status].length, 32,
         `Fallout 2 ${status} frame count`);
+assertEqual(realCatalog.get('fallout-2').frameAnimationPaths.dead.length, 1,
+    'Fallout 2 dead must be static');
 assertEqual(realCatalog.get('fallout-2').source, 'built-in', 'Fallout 2 source');
 assert(realCatalog.get('fallout-2').panelArtPaths.good.endsWith('/assets/panel/good.png'),
     'Fallout 2 panel art was not loaded');
@@ -502,6 +542,13 @@ assertEqual(frameCancelled, 0, 'completed frame animation was cancelled twice');
 frameAnimation.start(110, [0, 1]);
 frameAnimation.stop();
 assertEqual(frameCancelled, 1, 'active frame animation was not cancelled');
+
+const scheduledBeforeStatic = frameTimerCallback;
+frameAnimation.start(110, ['dead']);
+assert(!frameAnimation.running, 'one-frame static state scheduled a timer');
+assertEqual(appliedFrames.at(-1), 0, 'one-frame static state was not displayed');
+assertEqual(frameTimerCallback, scheduledBeforeStatic,
+    'one-frame static state replaced the timer callback');
 
 const frameSession = new FrameAnimationSession();
 assert(frameSession.shouldPlay('good'), 'first menu open did not request playback');

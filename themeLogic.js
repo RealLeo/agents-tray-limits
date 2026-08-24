@@ -34,8 +34,16 @@ export function clampPercent(value) {
     return Math.max(0, Math.min(100, number));
 }
 
+export function displayPercent(value) {
+    const percent = clampPercent(value);
+    return percent === null ? null : Math.round(percent);
+}
+
 export function statusForRemaining(value) {
-    const remaining = clampPercent(value);
+    // Status art must describe the same whole percentage that the user sees.
+    // Without rounding here, a remaining value such as 0.4 was rendered as
+    // "0%" while still selecting the critical art instead of dead.
+    const remaining = displayPercent(value);
     if (remaining === null)
         return null;
     if (remaining === 0)
@@ -139,8 +147,10 @@ export function formatPanelValue(
     const used = clampPercent(primary?.usedPercent);
     if (!primary || used === null)
         return null;
-    const value = display === 'used' ? used : 100 - used;
-    const roundedValue = Math.round(value);
+    const roundedRemaining = displayPercent(100 - used);
+    const roundedValue = display === 'used'
+        ? 100 - roundedRemaining
+        : roundedRemaining;
     return translate(i18n, 'panel.value', {
         value: i18n?.formatNumber
             ? i18n.formatNumber(roundedValue, {maximumFractionDigits: 0})
@@ -223,8 +233,8 @@ function validateFrameAnimation(frameAnimation) {
     const frames = {};
     for (const status of THEME_STATUS_KEYS) {
         const paths = frameAnimation.frames[status];
-        if (!Array.isArray(paths) || paths.length < 2 || paths.length > 32)
-            return {ok: false, error: `frameAnimation.frames.${status} must contain 2..32 frames`};
+        if (!Array.isArray(paths) || paths.length < 1 || paths.length > 32)
+            return {ok: false, error: `frameAnimation.frames.${status} must contain 1..32 frames`};
         if (!paths.every(isSafeRelativePath))
             return {ok: false, error: `invalid frameAnimation.frames.${status} path`};
         frames[status] = [...paths];

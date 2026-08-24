@@ -714,7 +714,10 @@ export default class AgentsTrayLimitsExtension extends Extension {
     _syncArtAnimation() {
         this._stopArtAnimation();
         const frameAnimation = this._theme?.frameAnimation;
-        if (this._menuArtFrames?.length && frameAnimation) {
+        // A one-frame sequence is an explicitly static status. Keep its sole
+        // actor visible without consuming the one-shot session or scheduling
+        // a timer.
+        if (this._menuArtFrames?.length > 1 && frameAnimation) {
             const finalIndex = this._menuArtFrames.length - 1;
             this._showMenuArtFrame(finalIndex);
             if (!this._indicator?.menu?.isOpen)

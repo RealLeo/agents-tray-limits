@@ -78,7 +78,7 @@ class PipboyUiSourceTests(unittest.TestCase):
 
     def test_version_and_fixed_outer_geometry(self):
         metadata = json.loads((EXTENSION / "metadata.json").read_text(encoding="utf-8"))
-        self.assertEqual(metadata["version"], 17)
+        self.assertEqual(metadata["version"], 18)
         device_rule = CSS.split(".agents-tray-limits-pipboy-device {", 1)[1].split("}", 1)[0]
         self.assertIn("width: 680px", device_rule)
         self.assertIn("height: 520px", device_rule)
@@ -176,7 +176,7 @@ class PipboyUiSourceTests(unittest.TestCase):
         content_rule = content_rule.split("}", 1)[0]
         self.assertIn("padding: 8px 18px 10px 14px", content_rule)
 
-    def test_v3_background_and_mixed_frame_set(self):
+    def test_v3_background_and_version_18_frame_set(self):
         expected = {
             "ui/device-shell-v3.png": (1360, 1040, 2),
             "ui/red-button-v4.png": (128, 128, 6),
@@ -190,7 +190,7 @@ class PipboyUiSourceTests(unittest.TestCase):
         for relative, header in expected.items():
             self.assertEqual(png_header(ASSETS / relative), header)
         frames = list((ASSETS / "animation").glob("*/*.png"))
-        self.assertEqual(len(frames), 80)
+        self.assertEqual(len(frames), 97)
         for frame in frames:
             self.assertEqual(png_header(frame), (512, 512, 6))
         self.assertIn('background-image: url("assets/ui/device-shell-v3.png")', CSS)
@@ -213,23 +213,24 @@ class PipboyUiSourceTests(unittest.TestCase):
         self.assertIn("this._animationLoop?.stop()", stop)
         self.assertIn("this._frameAnimationLoop?.stop()", stop)
 
-    def test_fallout_2_uses_staged_good_one_shot_animation(self):
+    def test_fallout_2_uses_three_animated_states_and_static_dead(self):
         manifest = json.loads(
             (EXTENSION / "themes" / "fallout-2" / "theme.json").read_text(
                 encoding="utf-8"
             )
         )
         animation = manifest["frameAnimation"]
-        self.assertEqual(animation["intervalMs"], 36)
-        self.assertEqual(animation["intervalMsByStatus"], {"good": 28})
+        self.assertEqual(animation["intervalMs"], 28)
+        self.assertNotIn("intervalMsByStatus", animation)
         self.assertEqual(animation["playback"], "once")
-        self.assertEqual(31 * animation["intervalMsByStatus"]["good"], 868)
-        self.assertEqual(len(animation["frames"]["good"]), 32)
-        self.assertEqual(manifest["art"]["good"], "assets/animation/good/32.png")
-        for status in ("worried", "critical", "dead"):
-            self.assertEqual(len(animation["frames"][status]), 16)
-            self.assertEqual(15 * animation["intervalMs"], 540)
-            self.assertEqual(manifest["art"][status], f"assets/animation/{status}/16.png")
+        for status in ("good", "worried", "critical"):
+            self.assertEqual(len(animation["frames"][status]), 32)
+            self.assertEqual(31 * animation["intervalMs"], 868)
+            self.assertEqual(manifest["art"][status], f"assets/animation/{status}/32.png")
+        self.assertEqual(animation["frames"]["dead"], ["assets/animation/dead/16.png"])
+        self.assertEqual(manifest["art"]["dead"], "assets/animation/dead/16.png")
+        sync = SOURCE.split("_syncArtAnimation() {", 1)[1].split("_reschedule() {", 1)[0]
+        self.assertIn("this._menuArtFrames?.length > 1", sync)
         self.assertIn(
             "frameAnimationInterval(\n                frameAnimation, this._menuArtStatus",
             SOURCE,

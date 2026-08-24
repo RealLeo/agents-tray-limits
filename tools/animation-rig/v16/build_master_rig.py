@@ -164,7 +164,7 @@ def configure_ik(rig: bpy.types.Object) -> tuple[bpy.types.Object, bpy.types.Obj
     constraint.use_tail = True
     # The chain is drawn left-to-right in image space; pi selects the bind-pose
     # elbow branch instead of mirroring the elbow above the shoulder-wrist line.
-    constraint.pole_angle = math.pi
+    constraint.pole_angle = float(arm.get("poleAngle", math.pi))
     return ik_target, pole_target
 
 
@@ -173,7 +173,35 @@ def smoothstep(value: float) -> float:
     return value * value * (3.0 - 2.0 * value)
 
 
-def arm_weights(x: float) -> dict[str, float]:
+def point_segment_distance(point: Vector, start: Vector, end: Vector) -> float:
+    segment = end - start
+    if segment.length_squared <= 1e-9:
+        return (point - start).length
+    amount = max(0.0, min(1.0, (point - start).dot(segment) / segment.length_squared))
+    return (point - (start + segment * amount)).length
+
+
+def arm_weights(x: float, y: float | None = None) -> dict[str, float]:
+    if CONFIG["arm"].get("weightMode") == "rigid":
+        return {"upper.raise": 1.0}
+    if CONFIG["arm"].get("weightMode") == "segments" and y is not None:
+        arm = CONFIG["arm"]
+        point = Vector((x, y))
+        segments = {
+            "upper.raise": (Vector(arm["shoulder"]), Vector(arm["elbow"])),
+            "forearm.raise": (Vector(arm["elbow"]), Vector(arm["wrist"])),
+            "hand.raise": (Vector(arm["wrist"]), Vector(arm["hand"])),
+        }
+        falloff = float(arm.get("weightFalloff", 20.0))
+        scores = {
+            name: math.exp(
+                -point_segment_distance(point, *segment) ** 2 /
+                (2.0 * falloff ** 2)
+            )
+            for name, segment in segments.items()
+        }
+        total = sum(scores.values())
+        return {name: score / total for name, score in scores.items()}
     hand = 1.0 - smoothstep((x - 142.0) / 22.0)
     upper = smoothstep((x - 176.0) / 34.0)
     forearm = max(0.0, 1.0 - hand - upper)
@@ -243,8 +271,8 @@ def build_arm_mesh(rig: bpy.types.Object) -> bpy.types.Object:
         name: obj.vertex_groups.new(name=name)
         for name in ("upper.raise", "forearm.raise", "hand.raise")
     }
-    for index, (x, _y) in enumerate(vertex_pixels):
-        for name, weight in arm_weights(float(x)).items():
+    for index, (x, y) in enumerate(vertex_pixels):
+        for name, weight in arm_weights(float(x), float(y)).items():
             if weight > 0.0001:
                 groups[name].add([index], weight, "REPLACE")
 
@@ -516,6 +544,7 @@ def write_motion_report(rig: bpy.types.Object, arm_obj: bpy.types.Object) -> Non
 
 
 def build() -> dict[str, object]:
+    BLEND_PATH.parent.mkdir(parents=True, exist_ok=True)
     clear_scene()
     reference = add_full_canvas_plane(
         "VaultBoyMasterReference", REFERENCE_FILE, -0.04,

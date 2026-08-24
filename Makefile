@@ -9,7 +9,7 @@ CHECKSUM := $(ZIP).sha256
 .PHONY: check pack install uninstall clean
 
 check:
-	python3 -m py_compile bin/agents-tray-limits-helper.py tools/check_css.py tools/stage_release.py tools/render_vault_boy_animation.py tools/animation-rig/v16/prepare_shoulder_fix.py tools/animation-rig/v16/verify_master_good.py
+	python3 -m py_compile bin/agents-tray-limits-helper.py tools/check_css.py tools/stage_release.py tools/render_vault_boy_animation.py tools/animation-rig/v16/prepare_shoulder_fix.py tools/animation-rig/v16/verify_master_good.py tools/animation-rig/v18/prepare_assets.py tools/animation-rig/v18/verify_previews.py
 	python3 -m json.tool metadata.json >/dev/null
 	glib-compile-schemas --strict --dry-run schemas
 	node --check extension.js
@@ -25,7 +25,7 @@ check:
 	gjs -m tests/test_profiles.js
 	python3 tools/check_css.py
 	python3 -m unittest discover -s tests -p 'test_*.py'
-	python3 tools/render_vault_boy_animation.py --statuses worried critical dead --verify themes/fallout-2/assets/animation >/dev/null
+	python3 tools/animation-rig/v18/verify_previews.py >/dev/null
 	AGENTS_TRAY_RIG_CONFIG=perspective-preview-config-v6.json python3 tools/animation-rig/v16/verify_master_good.py --sprites-dir themes/fallout-2/assets/animation/good --motion-file tools/animation-rig/v16/fixtures/master-good-v6-motion.json >/dev/null
 
 pack: check

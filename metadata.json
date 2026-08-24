@@ -2,7 +2,7 @@
   "uuid": "agents-tray-limits@realleo",
   "name": "Agents Tray Limits",
   "description": "Shows Codex and Claude Code subscription limits for multiple profiles in the GNOME top panel.",
-  "version": 17,
+  "version": 18,
   "shell-version": ["45", "46", "47", "48", "49", "50"],
   "settings-schema": "org.gnome.shell.extensions.agents-tray-limits",
   "url": "https://github.com/RealLeo/agents-tray-limits"

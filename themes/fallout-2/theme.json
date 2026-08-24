@@ -7,8 +7,8 @@
   "layout": "pipboy-2000",
   "art": {
     "good": "assets/animation/good/32.png",
-    "worried": "assets/animation/worried/16.png",
-    "critical": "assets/animation/critical/16.png",
+    "worried": "assets/animation/worried/32.png",
+    "critical": "assets/animation/critical/32.png",
     "dead": "assets/animation/dead/16.png"
   },
   "panelArt": {
@@ -18,8 +18,7 @@
     "dead": "assets/panel/dead.png"
   },
   "frameAnimation": {
-    "intervalMs": 36,
-    "intervalMsByStatus": {"good": 28},
+    "intervalMs": 28,
     "playback": "once",
     "frames": {
       "good": [
@@ -48,7 +47,15 @@
         "assets/animation/worried/9.png", "assets/animation/worried/10.png",
         "assets/animation/worried/11.png", "assets/animation/worried/12.png",
         "assets/animation/worried/13.png", "assets/animation/worried/14.png",
-        "assets/animation/worried/15.png", "assets/animation/worried/16.png"
+        "assets/animation/worried/15.png", "assets/animation/worried/16.png",
+        "assets/animation/worried/17.png", "assets/animation/worried/18.png",
+        "assets/animation/worried/19.png", "assets/animation/worried/20.png",
+        "assets/animation/worried/21.png", "assets/animation/worried/22.png",
+        "assets/animation/worried/23.png", "assets/animation/worried/24.png",
+        "assets/animation/worried/25.png", "assets/animation/worried/26.png",
+        "assets/animation/worried/27.png", "assets/animation/worried/28.png",
+        "assets/animation/worried/29.png", "assets/animation/worried/30.png",
+        "assets/animation/worried/31.png", "assets/animation/worried/32.png"
       ],
       "critical": [
         "assets/animation/critical/1.png", "assets/animation/critical/2.png",
@@ -58,17 +65,18 @@
         "assets/animation/critical/9.png", "assets/animation/critical/10.png",
         "assets/animation/critical/11.png", "assets/animation/critical/12.png",
         "assets/animation/critical/13.png", "assets/animation/critical/14.png",
-        "assets/animation/critical/15.png", "assets/animation/critical/16.png"
+        "assets/animation/critical/15.png", "assets/animation/critical/16.png",
+        "assets/animation/critical/17.png", "assets/animation/critical/18.png",
+        "assets/animation/critical/19.png", "assets/animation/critical/20.png",
+        "assets/animation/critical/21.png", "assets/animation/critical/22.png",
+        "assets/animation/critical/23.png", "assets/animation/critical/24.png",
+        "assets/animation/critical/25.png", "assets/animation/critical/26.png",
+        "assets/animation/critical/27.png", "assets/animation/critical/28.png",
+        "assets/animation/critical/29.png", "assets/animation/critical/30.png",
+        "assets/animation/critical/31.png", "assets/animation/critical/32.png"
       ],
       "dead": [
-        "assets/animation/dead/1.png", "assets/animation/dead/2.png",
-        "assets/animation/dead/3.png", "assets/animation/dead/4.png",
-        "assets/animation/dead/5.png", "assets/animation/dead/6.png",
-        "assets/animation/dead/7.png", "assets/animation/dead/8.png",
-        "assets/animation/dead/9.png", "assets/animation/dead/10.png",
-        "assets/animation/dead/11.png", "assets/animation/dead/12.png",
-        "assets/animation/dead/13.png", "assets/animation/dead/14.png",
-        "assets/animation/dead/15.png", "assets/animation/dead/16.png"
+        "assets/animation/dead/16.png"
       ]
     }
   }

@@ -20,7 +20,7 @@ class ReleaseIdentityTests(unittest.TestCase):
         metadata = json.loads((ROOT / "metadata.json").read_text(encoding="utf-8"))
         self.assertEqual(metadata["uuid"], UUID)
         self.assertEqual(metadata["name"], "Agents Tray Limits")
-        self.assertEqual(metadata["version"], 17)
+        self.assertEqual(metadata["version"], 18)
         self.assertEqual(metadata["settings-schema"], SCHEMA_ID)
         self.assertEqual(metadata["url"], "https://github.com/RealLeo/agents-tray-limits")
 

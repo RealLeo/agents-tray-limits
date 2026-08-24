@@ -1,0 +1,25 @@
+{
+  "version": 1, "canvas": [512, 512], "renderSize": 2048,
+  "frames": 32, "fps": 36, "intervalMs": 28, "displaySize": 98,
+  "pixelScale": 0.01, "gridStep": 6,
+  "camera": {"type": "PERSP", "distance": 3.5, "planeHeight": 5.12, "centerPixel": [256, 256]},
+  "sourceDir": "../v18/source/master", "referenceFile": "critical-master-v1.png",
+  "bodyFile": "critical-clean-body-v1.png", "armFile": "critical-arm-back-v1.png",
+  "blendFile": "../v18/rigs/critical-back.blend", "renderDir": "../v18/render/critical-back",
+  "previewDir": "../v18/previews/critical-back", "previewPrefix": "critical-back",
+  "materials": {"body": "BLENDED", "arm": "BLENDED"},
+  "arm": {
+    "bbox": [261, 131, 362, 342], "frontZ": 0.012, "registerFrontPlane": true,
+    "weightMode": "rigid", "weightFalloff": 18,
+    "shoulder": [289, 144], "elbow": [334, 225], "wrist": [342, 300], "hand": [340, 322],
+    "pole": [390, 220], "poleAngle": 3.141592653589793,
+    "depth": {"upper": 0, "forearm": 0, "hand": 0},
+    "trajectory": [
+      {"frame": 1, "target": [335, 284], "depth": 0, "shoulderCorrective": 0, "elbowCorrective": 0},
+      {"frame": 8, "target": [336, 286], "depth": 0, "shoulderCorrective": 0, "elbowCorrective": 0},
+      {"frame": 18, "target": [338, 292], "depth": 0, "shoulderCorrective": 0, "elbowCorrective": 0},
+      {"frame": 26, "target": [341, 298], "depth": 0, "shoulderCorrective": 0, "elbowCorrective": 0},
+      {"frame": 32, "target": [342, 300], "depth": 0, "shoulderCorrective": 0, "elbowCorrective": 0}
+    ]
+  }
+}

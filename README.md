@@ -241,7 +241,7 @@ A minimal manifest uses schema version 1:
 }
 ```
 
-Theme IDs may contain lowercase ASCII letters, digits, `_`, and `-`; the directory name must equal the ID. The four `art` images are required. Optional `panelArt` can provide four separate panel icons. A `frameAnimation` can provide 2–32 raster frames for every state and may override its base interval with `intervalMsByStatus`; the older `animation` field defines transform steps, and the two animation forms are mutually exclusive.
+Theme IDs may contain lowercase ASCII letters, digits, `_`, and `-`; the directory name must equal the ID. The four `art` images are required. Optional `panelArt` can provide four separate panel icons. A `frameAnimation` can provide 1–32 raster frames for every state; a single frame makes that state explicitly static. It may override its base interval with `intervalMsByStatus`; the older `animation` field defines transform steps, and the two animation forms are mutually exclusive.
 
 All manifest paths must resolve to regular raster files inside the theme directory. Absolute paths, `..` traversal, and symbolic links are rejected. User themes may override built-in IDs except for the reserved `classic` theme. Use **Reload themes** in preferences after editing a theme.
 
@@ -331,7 +331,7 @@ unzip -t dist/agents-tray-limits@realleo.zip
 
 `make check` validates JavaScript, Python, schemas, translations, themes, UI source contracts, the helper test suite, and the deterministic Fallout 2 animation render. `make pack` creates a clean runtime archive with compiled schemas and a checksum.
 
-The Fallout 2 theme uses a build-time layered 2D rig. The `good` state uses 32 frames at a 28 ms runtime interval; `worried`, `critical`, and `dead` use 16 frames at the base 36 ms interval. Every one-shot sequence is rendered from shared body parts with fixed joint pivots and cubic easing rather than independently generated frames. The rig sources and renderer live under `tools/animation-rig/` and are excluded from the runtime ZIP.
+The Fallout 2 theme uses a build-time layered 2D rig. The `good`, `worried`, and `critical` states use 32 frames at a 28 ms runtime interval. The seated X-eyed `dead` state is deliberately static. Every animated sequence is rendered from shared body parts with fixed joint pivots and cubic easing rather than independently generated frames. The rig sources and renderer live under `tools/animation-rig/` and are excluded from the runtime ZIP.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution rules and [SECURITY.md](SECURITY.md) for private vulnerability reporting.
 
