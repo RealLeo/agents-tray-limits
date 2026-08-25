@@ -62,7 +62,14 @@ export function resolveLanguage(selected = 'system', systemLanguages = GLib.get_
 }
 
 function readCatalog(extensionPath, language) {
-    const path = GLib.build_filenamev([extensionPath, 'locales', `${language}.json`]);
+    const packagedRoot = GLib.build_filenamev([extensionPath, 'locales']);
+    const developmentRoot = GLib.build_filenamev([
+        extensionPath, '..', '..', 'shared', 'locales',
+    ]);
+    const localeRoot = GLib.file_test(packagedRoot, GLib.FileTest.IS_DIR)
+        ? packagedRoot
+        : developmentRoot;
+    const path = GLib.build_filenamev([localeRoot, `${language}.json`]);
     try {
         const [ok, contents] = GLib.file_get_contents(path);
         if (!ok)

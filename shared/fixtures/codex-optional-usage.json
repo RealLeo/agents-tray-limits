@@ -1,0 +1,16 @@
+{
+  "ok": true,
+  "helperVersion": "3.0.0",
+  "profileId": "work",
+  "provider": "codex",
+  "source": "codex-app-server",
+  "fetchedAt": 1787652000,
+  "rateLimits": {
+    "rateLimits": {
+      "limitId": "codex",
+      "primary": {"usedPercent": 0, "windowDurationMins": 300, "resetsAt": 1787662800}
+    }
+  },
+  "usage": null,
+  "usageError": {"code": -32601, "message": "Method not found"}
+}

@@ -5,7 +5,7 @@
 /*.sha256
 
 # Compiled schemas and language artifacts
-/schemas/gschemas.compiled
+/apps/gnome/schemas/gschemas.compiled
 /locale/
 
 # Python
@@ -40,3 +40,9 @@ Thumbs.db
 /tools/animation-rig/v18/render/*/sprites/
 /tools/animation-rig/v18/previews/
 /tools/animation-rig/v18/rigs/*.blend1
+
+# Xcode and SwiftPM
+DerivedData/
+.build/
+*.xcuserstate
+xcuserdata/

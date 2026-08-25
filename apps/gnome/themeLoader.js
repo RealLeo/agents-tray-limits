@@ -222,7 +222,13 @@ export function loadThemeCatalog(
     userRoot = userThemesDirectory(),
     i18n = null
 ) {
-    const builtInRoot = GLib.build_filenamev([extensionPath, 'themes']);
+    const packagedRoot = GLib.build_filenamev([extensionPath, 'themes']);
+    const developmentRoot = GLib.build_filenamev([
+        extensionPath, '..', '..', 'shared', 'themes',
+    ]);
+    const builtInRoot = GLib.file_test(packagedRoot, GLib.FileTest.IS_DIR)
+        ? packagedRoot
+        : developmentRoot;
     const catalog = mergeThemeLists(
         loadRoot(builtInRoot, 'built-in').map(theme => localizeBuiltInTheme(theme, i18n)),
         loadRoot(userRoot, 'user')

@@ -13,8 +13,10 @@ from pathlib import Path
 from typing import Any, Iterable
 
 
-ROOT = Path(__file__).resolve().parents[1]
-BUILD_ROOT = (ROOT / "build").resolve()
+GNOME_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[3]
+SHARED_ROOT = REPO_ROOT / "shared"
+BUILD_ROOT = (REPO_ROOT / "build" / "gnome").resolve()
 UUID = "agents-tray-limits@realleo"
 TOP_LEVEL_FILES = (
     "metadata.json",
@@ -86,7 +88,11 @@ def stage_theme(theme_dir: Path, destination: Path) -> None:
     copy_file(manifest_path, destination / "theme.json")
 
     referenced = set(iter_manifest_assets(manifest))
+    platforms = manifest.get("platforms")
+    gnome = platforms.get("gnome") if isinstance(platforms, dict) else None
     stylesheet = manifest.get("stylesheet")
+    if not stylesheet and isinstance(gnome, dict):
+        stylesheet = gnome.get("stylesheet")
     if isinstance(stylesheet, str) and stylesheet:
         stylesheet_path = safe_source(theme_dir, stylesheet)
         stylesheet_text = stylesheet_path.read_text(encoding="utf-8")
@@ -100,7 +106,7 @@ def stage_theme(theme_dir: Path, destination: Path) -> None:
 
 
 def stage_locales(destination: Path) -> None:
-    source = ROOT / "locales"
+    source = SHARED_ROOT / "locales"
     if not source.is_dir():
         return
     for path in source.rglob("*"):
@@ -109,7 +115,7 @@ def stage_locales(destination: Path) -> None:
 
 
 def build(stage: Path) -> None:
-    metadata = json.loads((ROOT / "metadata.json").read_text(encoding="utf-8"))
+    metadata = json.loads((GNOME_ROOT / "metadata.json").read_text(encoding="utf-8"))
     if metadata.get("uuid") != UUID:
         fail(f"metadata UUID must be {UUID}")
 
@@ -121,29 +127,30 @@ def build(stage: Path) -> None:
     stage.mkdir(parents=True)
 
     for relative in TOP_LEVEL_FILES:
-        copy_file(safe_source(ROOT, relative), stage / relative)
+        source_root = REPO_ROOT if relative in {"LICENSE", "NOTICE.md"} else GNOME_ROOT
+        copy_file(safe_source(source_root, relative), stage / relative)
     for relative in OPTIONAL_TOP_LEVEL_FILES:
-        if (ROOT / relative).is_file():
-            copy_file(safe_source(ROOT, relative), stage / relative)
+        if (GNOME_ROOT / relative).is_file():
+            copy_file(safe_source(GNOME_ROOT, relative), stage / relative)
 
     copy_file(
-        safe_source(ROOT / "bin", "agents-tray-limits-helper.py"),
+        safe_source(GNOME_ROOT / "bin", "agents-tray-limits-helper.py"),
         stage / "bin" / "agents-tray-limits-helper.py",
     )
     copy_file(
-        safe_source(ROOT / "icons", "agents-tray-limits-symbolic.svg"),
+        safe_source(GNOME_ROOT / "icons", "agents-tray-limits-symbolic.svg"),
         stage / "icons" / "agents-tray-limits-symbolic.svg",
     )
     copy_file(
         safe_source(
-            ROOT / "schemas",
+            GNOME_ROOT / "schemas",
             "org.gnome.shell.extensions.agents-tray-limits.gschema.xml",
         ),
         stage / "schemas" / "org.gnome.shell.extensions.agents-tray-limits.gschema.xml",
     )
     stage_locales(stage / "locales")
 
-    themes_root = ROOT / "themes"
+    themes_root = SHARED_ROOT / "themes"
     for theme_dir in sorted(path for path in themes_root.iterdir() if path.is_dir()):
         if theme_dir.is_symlink():
             fail(f"theme directory must not be a symlink: {theme_dir}")

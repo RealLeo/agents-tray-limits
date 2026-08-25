@@ -1,9 +1,25 @@
 {
-  "version": 1,
+  "version": 2,
   "id": "fallout-3",
   "name": "Fallout 3 — Pip-Boy 3000",
   "description": "The earlier bright green CRT-inspired interface retained from version 3.",
-  "stylesheet": "theme.css",
+  "platforms": {
+    "gnome": {"stylesheet": "theme.css"},
+    "macos": {
+      "layout": "pipboy-3000",
+      "palette": {
+        "background": "#020A03FF",
+        "surface": "#071809FF",
+        "primary": "#4AFF69FF",
+        "secondary": "#24B845FF",
+        "text": "#8DFF9CFF",
+        "muted": "#4E9D5BFF",
+        "warning": "#D4E84DFF",
+        "critical": "#FF5D4AFF"
+      },
+      "typography": {"family": "monospaced", "scale": 1.0}
+    }
+  },
   "art": {
     "good": "assets/good.png",
     "worried": "assets/worried.png",

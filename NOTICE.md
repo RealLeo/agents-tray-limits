@@ -12,8 +12,8 @@ Licensed under the MIT License. See `LICENSE`.
 
 The MIT License in this repository does **not** apply to raster artwork in:
 
-- `themes/fallout-2/assets/`
-- `themes/fallout-3/assets/`
+- `shared/themes/fallout-2/assets/`
+- `shared/themes/fallout-3/assets/`
 - `tools/animation-rig/`
 - `tools/blender-rig/`
 

@@ -1,10 +1,28 @@
 {
-  "version": 1,
+  "version": 2,
   "id": "fallout-2",
   "name": "Fallout 2 — Pip-Boy 2000",
   "description": "A hardware-inspired Pip-Boy 2000 layout with a control rail, CRT display, and full-color character art.",
-  "stylesheet": "theme.css",
-  "layout": "pipboy-2000",
+  "platforms": {
+    "gnome": {
+      "stylesheet": "theme.css",
+      "layout": "pipboy-2000"
+    },
+    "macos": {
+      "layout": "pipboy-2000",
+      "palette": {
+        "background": "#090D0AFF",
+        "surface": "#121A13FF",
+        "primary": "#B9D8A6FF",
+        "secondary": "#7D9D70FF",
+        "text": "#E6E0C0FF",
+        "muted": "#9A987EFF",
+        "warning": "#D7A83EFF",
+        "critical": "#C84C3CFF"
+      },
+      "typography": {"family": "monospaced", "scale": 1.0}
+    }
+  },
   "art": {
     "good": "assets/animation/good/32.png",
     "worried": "assets/animation/worried/32.png",

@@ -1,0 +1,25 @@
+{
+  "ok": true,
+  "helperVersion": "3.0.0",
+  "profileId": "claude-personal",
+  "provider": "claude",
+  "source": "claude-statusline",
+  "fetchedAt": 1787652000,
+  "account": {"type": "claude"},
+  "rateLimits": {
+    "rateLimits": {
+      "limitId": "claude",
+      "primary": {"usedPercent": 22, "windowDurationMins": 300, "resetsAt": 1787662800},
+      "secondary": {"usedPercent": 41, "windowDurationMins": 10080, "resetsAt": 1788256800}
+    },
+    "rateLimitsByLimitId": {
+      "claude": {
+        "limitId": "claude",
+        "primary": {"usedPercent": 22, "windowDurationMins": 300, "resetsAt": 1787662800},
+        "secondary": {"usedPercent": 41, "windowDurationMins": 10080, "resetsAt": 1788256800}
+      }
+    }
+  },
+  "usage": null,
+  "claudeVersion": "2.1.0"
+}

@@ -1,0 +1,10 @@
+{
+  "ok": false,
+  "helperVersion": "3.0.0",
+  "profileId": "default-codex",
+  "provider": "codex",
+  "fetchedAt": 1787652000,
+  "errorCode": "unsupported_auth",
+  "message": "Subscription limits require Codex sign-in with ChatGPT, not an API key or Bedrock.",
+  "details": "account.type=apiKey"
+}

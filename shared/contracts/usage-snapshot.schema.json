@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://realleo.github.io/agents-tray-limits/contracts/usage-snapshot-v1.schema.json",
+  "title": "Agents Tray Limits provider snapshot",
+  "type": "object",
+  "required": ["ok", "profileId", "provider", "fetchedAt"],
+  "properties": {
+    "ok": {"type": "boolean"},
+    "helperVersion": {"type": "string"},
+    "profileId": {"type": "string"},
+    "provider": {"enum": ["codex", "claude"]},
+    "source": {"type": "string"},
+    "fetchedAt": {"type": "integer"},
+    "elapsedMs": {"type": "integer", "minimum": 0},
+    "codexBinary": {"type": "string"},
+    "account": {"type": ["object", "null"]},
+    "rateLimits": {"$ref": "#/$defs/rateLimitResult"},
+    "usage": {"type": ["object", "null"]},
+    "errorCode": {"type": "string"},
+    "message": {"type": "string"},
+    "details": {"type": "string"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"ok": {"const": true}}},
+      "then": {"required": ["source", "rateLimits"]},
+      "else": {"required": ["errorCode", "message"]}
+    }
+  ],
+  "$defs": {
+    "window": {
+      "type": ["object", "null"],
+      "properties": {
+        "usedPercent": {"type": "number", "minimum": 0, "maximum": 100},
+        "windowDurationMins": {"type": "number", "minimum": 0},
+        "resetsAt": {"type": "number", "minimum": 0}
+      },
+      "additionalProperties": true
+    },
+    "bucket": {
+      "type": "object",
+      "properties": {
+        "limitId": {"type": "string"},
+        "limitName": {"type": ["string", "null"]},
+        "primary": {"$ref": "#/$defs/window"},
+        "secondary": {"$ref": "#/$defs/window"}
+      },
+      "additionalProperties": true
+    },
+    "rateLimitResult": {
+      "type": "object",
+      "properties": {
+        "rateLimits": {"$ref": "#/$defs/bucket"},
+        "rateLimitsByLimitId": {
+          "type": "object",
+          "additionalProperties": {"$ref": "#/$defs/bucket"}
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

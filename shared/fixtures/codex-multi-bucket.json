@@ -1,0 +1,34 @@
+{
+  "ok": true,
+  "helperVersion": "3.0.0",
+  "profileId": "default-codex",
+  "provider": "codex",
+  "source": "codex-app-server",
+  "fetchedAt": 1787652000,
+  "elapsedMs": 42,
+  "codexBinary": "/opt/homebrew/bin/codex",
+  "account": {"type": "chatgpt", "email": "fixture@example.invalid", "planType": "plus"},
+  "rateLimits": {
+    "rateLimits": {
+      "limitId": "codex",
+      "primary": {"usedPercent": 35, "windowDurationMins": 300, "resetsAt": 1787662800},
+      "secondary": {"usedPercent": 18, "windowDurationMins": 10080, "resetsAt": 1788256800}
+    },
+    "rateLimitsByLimitId": {
+      "codex": {
+        "limitId": "codex",
+        "primary": {"usedPercent": 35, "windowDurationMins": 300, "resetsAt": 1787662800},
+        "secondary": {"usedPercent": 18, "windowDurationMins": 10080, "resetsAt": 1788256800}
+      },
+      "spark": {
+        "limitId": "spark",
+        "limitName": "Spark",
+        "primary": {"usedPercent": 7, "windowDurationMins": 300, "resetsAt": 1787662800}
+      }
+    }
+  },
+  "usage": {
+    "summary": {"lifetimeTokens": 1234567, "peakDailyTokens": 45678},
+    "dailyUsageBuckets": [{"startDate": "2026-08-24", "tokens": 12345}]
+  }
+}

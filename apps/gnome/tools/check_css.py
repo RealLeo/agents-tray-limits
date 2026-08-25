@@ -11,10 +11,11 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+SHARED = Path(__file__).resolve().parents[3] / "shared"
 STYLESHEETS = (
     ROOT / "stylesheet.css",
-    ROOT / "themes" / "fallout-2" / "theme.css",
-    ROOT / "themes" / "fallout-3" / "theme.css",
+    SHARED / "themes" / "fallout-2" / "theme.css",
+    SHARED / "themes" / "fallout-3" / "theme.css",
 )
 
 

@@ -6,12 +6,14 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 EXTENSION = ROOT
-RIG_RENDERER = ROOT / "tools" / "render_vault_boy_animation.py"
-RIG_CONFIG = ROOT / "tools" / "animation-rig" / "v15" / "rig.json"
+REPO_ROOT = Path(__file__).resolve().parents[3]
+SHARED_ROOT = REPO_ROOT / "shared"
+RIG_RENDERER = REPO_ROOT / "tools" / "render_vault_boy_animation.py"
+RIG_CONFIG = REPO_ROOT / "tools" / "animation-rig" / "v15" / "rig.json"
 SOURCE = (EXTENSION / "extension.js").read_text(encoding="utf-8")
 PREFS = (EXTENSION / "prefs.js").read_text(encoding="utf-8")
-CSS = (EXTENSION / "themes" / "fallout-2" / "theme.css").read_text(encoding="utf-8")
-ASSETS = EXTENSION / "themes" / "fallout-2" / "assets"
+CSS = (SHARED_ROOT / "themes" / "fallout-2" / "theme.css").read_text(encoding="utf-8")
+ASSETS = SHARED_ROOT / "themes" / "fallout-2" / "assets"
 
 
 def png_header(path):
@@ -215,7 +217,7 @@ class PipboyUiSourceTests(unittest.TestCase):
 
     def test_fallout_2_uses_three_animated_states_and_static_dead(self):
         manifest = json.loads(
-            (EXTENSION / "themes" / "fallout-2" / "theme.json").read_text(
+            (SHARED_ROOT / "themes" / "fallout-2" / "theme.json").read_text(
                 encoding="utf-8"
             )
         )

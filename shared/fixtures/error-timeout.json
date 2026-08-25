@@ -1,0 +1,9 @@
+{
+  "ok": false,
+  "helperVersion": "3.0.0",
+  "profileId": "slow-codex",
+  "provider": "codex",
+  "fetchedAt": 1787652000,
+  "errorCode": "timeout",
+  "message": "Codex App Server did not reply in time."
+}

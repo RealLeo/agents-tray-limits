@@ -2,7 +2,8 @@ export const CLASSIC_THEME_ID = 'classic';
 export const LEGACY_THEME_IDS = {
     'pipboy-classic': 'fallout-3',
 };
-export const THEME_MANIFEST_VERSION = 1;
+export const THEME_MANIFEST_VERSION = 2;
+export const LEGACY_THEME_MANIFEST_VERSION = 1;
 export const THEME_STATUS_KEYS = ['good', 'worried', 'critical', 'dead'];
 
 export const STATUS_DETAILS = {
@@ -253,8 +254,9 @@ export function frameAnimationInterval(frameAnimation, status) {
 export function validateThemeManifest(manifest, directoryName = null) {
     if (!manifest || typeof manifest !== 'object' || Array.isArray(manifest))
         return {ok: false, error: 'theme manifest must be an object'};
-    if (manifest.version !== THEME_MANIFEST_VERSION)
-        return {ok: false, error: `theme manifest version must be ${THEME_MANIFEST_VERSION}`};
+    const version = Number(manifest.version);
+    if (![LEGACY_THEME_MANIFEST_VERSION, THEME_MANIFEST_VERSION].includes(version))
+        return {ok: false, error: 'theme manifest version must be 1 or 2'};
 
     const id = String(manifest.id ?? '');
     if (!/^[a-z0-9_-]+$/.test(id))
@@ -267,8 +269,68 @@ export function validateThemeManifest(manifest, directoryName = null) {
         return {ok: false, error: 'theme name is required'};
     if (manifest.description !== undefined && typeof manifest.description !== 'string')
         return {ok: false, error: 'theme description must be a string'};
-    if (manifest.stylesheet !== undefined && !isSafeRelativePath(manifest.stylesheet))
+    let stylesheet = manifest.stylesheet ?? null;
+    let layout = manifest.layout ?? null;
+    let platforms = null;
+    if (version === THEME_MANIFEST_VERSION) {
+        if (!manifest.platforms || typeof manifest.platforms !== 'object' ||
+            Array.isArray(manifest.platforms) || Object.keys(manifest.platforms).length === 0)
+            return {ok: false, error: 'theme platforms are required'};
+        const unknownPlatforms = Object.keys(manifest.platforms)
+            .filter(key => !['gnome', 'macos'].includes(key));
+        if (unknownPlatforms.length > 0)
+            return {ok: false, error: `unknown theme platform: ${unknownPlatforms[0]}`};
+
+        const gnome = manifest.platforms.gnome;
+        if (gnome !== undefined && (!gnome || typeof gnome !== 'object' || Array.isArray(gnome)))
+            return {ok: false, error: 'platforms.gnome must be an object'};
+        stylesheet = gnome?.stylesheet ?? null;
+        layout = gnome?.layout ?? null;
+        if (stylesheet !== null && !isSafeRelativePath(stylesheet))
+            return {ok: false, error: 'invalid platforms.gnome.stylesheet path'};
+
+        const macos = manifest.platforms.macos;
+        if (macos !== undefined) {
+            if (!macos || typeof macos !== 'object' || Array.isArray(macos))
+                return {ok: false, error: 'platforms.macos must be an object'};
+            if (!['classic', 'pipboy-2000', 'pipboy-3000'].includes(macos.layout))
+                return {ok: false, error: 'unsupported macOS theme layout'};
+            const palette = macos.palette ?? {};
+            const paletteKeys = [
+                'background', 'surface', 'primary', 'secondary',
+                'text', 'muted', 'warning', 'critical',
+            ];
+            if (!palette || typeof palette !== 'object' || Array.isArray(palette))
+                return {ok: false, error: 'platforms.macos.palette must be an object'};
+            for (const [key, value] of Object.entries(palette)) {
+                if (!paletteKeys.includes(key) ||
+                    typeof value !== 'string' || !/^#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$/.test(value))
+                    return {ok: false, error: `invalid platforms.macos.palette.${key}`};
+            }
+            const typography = macos.typography ?? {};
+            if (!typography || typeof typography !== 'object' || Array.isArray(typography))
+                return {ok: false, error: 'platforms.macos.typography must be an object'};
+            if (typography.family !== undefined &&
+                !['system', 'monospaced'].includes(typography.family))
+                return {ok: false, error: 'unsupported macOS theme font family'};
+            const scale = Number(typography.scale ?? 1);
+            if (!Number.isFinite(scale) || scale < 0.75 || scale > 1.5)
+                return {ok: false, error: 'macOS theme font scale must be 0.75..1.5'};
+        }
+        platforms = {
+            gnome: gnome ? {stylesheet, layout} : null,
+            macos: macos ? {
+                layout: macos.layout,
+                palette: {...(macos.palette ?? {})},
+                typography: {
+                    family: macos.typography?.family ?? 'system',
+                    scale: Number(macos.typography?.scale ?? 1),
+                },
+            } : null,
+        };
+    } else if (stylesheet !== null && !isSafeRelativePath(stylesheet)) {
         return {ok: false, error: 'invalid stylesheet path'};
+    }
 
     if (!manifest.art || typeof manifest.art !== 'object')
         return {ok: false, error: 'four art paths are required'};
@@ -300,23 +362,23 @@ export function validateThemeManifest(manifest, directoryName = null) {
     if (animationResult.animation && frameAnimationResult.frameAnimation)
         return {ok: false, error: 'animation and frameAnimation are mutually exclusive'};
 
-    const layout = manifest.layout ?? null;
     if (layout !== null && layout !== 'pipboy-2000')
         return {ok: false, error: 'unsupported theme layout'};
 
     return {
         ok: true,
         manifest: {
-            version: THEME_MANIFEST_VERSION,
+            version,
             id,
             name: manifest.name.trim(),
             description: String(manifest.description ?? '').trim(),
-            stylesheet: manifest.stylesheet ?? null,
+            stylesheet,
             art,
             panelArt,
             layout,
             animation: animationResult.animation,
             frameAnimation: frameAnimationResult.frameAnimation,
+            platforms,
         },
     };
 }

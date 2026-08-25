@@ -1,0 +1,10 @@
+{
+  "ok": false,
+  "helperVersion": "3.0.0",
+  "profileId": "stopped-codex",
+  "provider": "codex",
+  "fetchedAt": 1787652000,
+  "errorCode": "app_server_stopped",
+  "message": "Codex App Server stopped before replying.",
+  "details": "fixture process exited unexpectedly"
+}

@@ -1,0 +1,10 @@
+{
+  "ok": false,
+  "helperVersion": "3.0.0",
+  "profileId": "legacy-codex",
+  "provider": "codex",
+  "fetchedAt": 1787652000,
+  "errorCode": "codex_too_old",
+  "message": "This Codex CLI version cannot read usage limits. Update Codex and try again.",
+  "details": "Method not found: account/rateLimits/read"
+}

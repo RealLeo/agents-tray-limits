@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://realleo.github.io/agents-tray-limits/contracts/theme-manifest-v2.schema.json",
+  "title": "Agents Tray Limits theme manifest v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "id", "name", "art", "platforms"],
+  "properties": {
+    "version": {"const": 2},
+    "id": {"type": "string", "pattern": "^[a-z0-9_-]+$", "not": {"const": "classic"}},
+    "name": {"type": "string", "minLength": 1},
+    "description": {"type": "string"},
+    "art": {"$ref": "#/$defs/statusPaths"},
+    "panelArt": {"$ref": "#/$defs/statusPaths"},
+    "animation": {"$ref": "#/$defs/animation"},
+    "frameAnimation": {"$ref": "#/$defs/frameAnimation"},
+    "platforms": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "gnome": {"$ref": "#/$defs/gnome"},
+        "macos": {"$ref": "#/$defs/macos"}
+      }
+    }
+  },
+  "not": {"required": ["animation", "frameAnimation"]},
+  "$defs": {
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/|~|.*(?:^|/)\\.\\.?(?:/|$))(?!.*\\\\).+$"
+    },
+    "statusPaths": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["good", "worried", "critical", "dead"],
+      "properties": {
+        "good": {"$ref": "#/$defs/path"},
+        "worried": {"$ref": "#/$defs/path"},
+        "critical": {"$ref": "#/$defs/path"},
+        "dead": {"$ref": "#/$defs/path"}
+      }
+    },
+    "animation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["intervalMs", "steps"],
+      "properties": {
+        "intervalMs": {"type": "integer", "minimum": 50, "maximum": 5000},
+        "steps": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "x": {"type": "number", "minimum": -12, "maximum": 12},
+              "y": {"type": "number", "minimum": -12, "maximum": 12},
+              "opacity": {"type": "number", "minimum": 0, "maximum": 255},
+              "scale": {"type": "number", "minimum": 0.8, "maximum": 1.2}
+            }
+          }
+        }
+      }
+    },
+    "frameAnimation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["intervalMs", "playback", "frames"],
+      "properties": {
+        "intervalMs": {"type": "integer", "minimum": 20, "maximum": 5000},
+        "playback": {"const": "once"},
+        "frames": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["good", "worried", "critical", "dead"],
+          "properties": {
+            "good": {"$ref": "#/$defs/frameList"},
+            "worried": {"$ref": "#/$defs/frameList"},
+            "critical": {"$ref": "#/$defs/frameList"},
+            "dead": {"$ref": "#/$defs/frameList"}
+          }
+        }
+      }
+    },
+    "frameList": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": {"$ref": "#/$defs/path"}
+    },
+    "gnome": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "stylesheet": {"$ref": "#/$defs/path"},
+        "layout": {"enum": ["pipboy-2000"]}
+      }
+    },
+    "macos": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["layout"],
+      "properties": {
+        "layout": {"enum": ["classic", "pipboy-2000", "pipboy-3000"]},
+        "palette": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "background": {"$ref": "#/$defs/color"},
+            "surface": {"$ref": "#/$defs/color"},
+            "primary": {"$ref": "#/$defs/color"},
+            "secondary": {"$ref": "#/$defs/color"},
+            "text": {"$ref": "#/$defs/color"},
+            "muted": {"$ref": "#/$defs/color"},
+            "warning": {"$ref": "#/$defs/color"},
+            "critical": {"$ref": "#/$defs/color"}
+          }
+        },
+        "typography": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "family": {"enum": ["system", "monospaced"]},
+            "scale": {"type": "number", "minimum": 0.75, "maximum": 1.5}
+          }
+        }
+      }
+    },
+    "color": {"type": "string", "pattern": "^#[0-9A-Fa-f]{6}(?:[0-9A-Fa-f]{2})?$"}
+  }
+}

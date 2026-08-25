@@ -11,7 +11,8 @@ Thank you for helping improve Agents Tray Limits.
 
 ## Development setup
 
-Install Python 3 with Pillow, Node.js, GJS, GLib schema tools, `zip`, and `unzip`, then clone the repository:
+For GNOME work, install Python 3 with Pillow, Node.js, GJS, GLib schema tools,
+`zip`, and `unzip`. For macOS work, use Xcode 15 or newer. Then clone the repository:
 
 ```bash
 git clone https://github.com/RealLeo/agents-tray-limits.git
@@ -22,9 +23,15 @@ make pack
 
 Install the development copy with `./install.sh`. On Wayland, sign out and sign back in if GNOME Shell does not discover new modules. Never use `gnome-shell --replace` to reload this extension.
 
+Platform-specific checks are available as `make check-gnome` and
+`make check-macos`. The default `make check` and `make pack` commands remain
+aliases for the published GNOME extension.
+
 ## Making changes
 
-- Keep the extension compatible with every GNOME Shell version listed in `metadata.json`.
+- Keep the extension compatible with every GNOME Shell version listed in
+  `apps/gnome/metadata.json`, and the macOS application compatible with its
+  declared macOS 13 deployment target.
 - Preserve the declarative, non-executable user-theme format and its path-traversal and symlink protections.
 - Keep helper output machine-readable and use stable `errorCode` values for user-facing failures.
 - Add or update tests for behavior changes.
@@ -46,9 +53,14 @@ Do not translate product names such as ChatGPT, Codex, Claude Code, or `PIP-BOY 
 
 Custom themes should use original or properly licensed assets. Include source and licensing information for every contributed asset. A pull request may be rejected if asset rights are unclear.
 
-The `classic` ID is reserved and cannot be overridden by a user theme. Avoid extending manifest schema version 1 unless a behavior cannot be represented safely by the existing declarative fields.
+The `classic` ID is reserved and cannot be overridden by a user theme. Shared
+themes use the versioned schemas under `shared/contracts`; keep platform
+appearance declarative and nonexecutable.
 
-The bundled Fallout 2 animation is generated from the layered source in `tools/animation-rig/`. Change its rig configuration or renderer and regenerate all runtime frames together; do not hand-edit individual frames or replace them with separately generated images.
+The bundled Fallout 2 animation is generated from the layered source in
+`tools/animation-rig/` and written to `shared/themes/`. Change its rig
+configuration or renderer and regenerate all runtime frames together; do not
+hand-edit individual frames or replace them with separately generated images.
 
 ## Tests
 
@@ -62,7 +74,10 @@ unzip -t dist/agents-tray-limits@realleo.zip
 
 Confirm that the release archive contains `schemas/gschemas.compiled` and does not contain Git metadata, tests, source artwork, cache files, or unused assets.
 
-For UI changes, also test normal, loading, and error states on a supported GNOME Shell version. Verify extension enable/disable, preferences, menu lifecycle, language switching, and both animation-enabled and animation-disabled behavior.
+For UI changes, also test normal, loading, and error states on the affected
+platform. GNOME verification covers extension lifecycle and preferences;
+macOS verification covers MenuBarExtra, Settings, launch at login, VoiceOver,
+Reduce Motion, and sleep/wake behavior.
 
 ## Pull requests
 

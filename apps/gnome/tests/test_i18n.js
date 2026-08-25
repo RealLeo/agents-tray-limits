@@ -9,6 +9,7 @@ import {
 } from '../i18n.js';
 
 const ROOT = GLib.get_current_dir();
+const SHARED_ROOT = GLib.build_filenamev([ROOT, '..', '..', 'shared']);
 const CATALOG_LANGUAGES = ['en', 'ru', 'de', 'fr', 'zh-CN'];
 const PLACEHOLDER_PATTERN = /\{([A-Za-z][A-Za-z0-9_]*)\}/g;
 
@@ -99,7 +100,7 @@ function placeholders(value) {
 
 const catalogs = Object.fromEntries(CATALOG_LANGUAGES.map(language => [
     language,
-    readJson(GLib.build_filenamev([ROOT, 'locales', `${language}.json`])),
+    readJson(GLib.build_filenamev([SHARED_ROOT, 'locales', `${language}.json`])),
 ]));
 const englishKeys = Object.keys(catalogs.en).filter(key => key !== '_meta').sort();
 

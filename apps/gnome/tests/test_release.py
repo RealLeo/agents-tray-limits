@@ -11,6 +11,8 @@ from tools import stage_release
 
 
 ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[3]
+SHARED_ROOT = REPO_ROOT / "shared"
 UUID = "agents-tray-limits@realleo"
 SCHEMA_ID = "org.gnome.shell.extensions.agents-tray-limits"
 
@@ -110,7 +112,7 @@ class ReleaseIdentityTests(unittest.TestCase):
 
         for language in ("en", "ru", "de", "fr", "zh-CN"):
             catalog = json.loads(
-                (ROOT / "locales" / f"{language}.json").read_text(encoding="utf-8")
+                (SHARED_ROOT / "locales" / f"{language}.json").read_text(encoding="utf-8")
             )
             for code in error_codes:
                 self.assertTrue(
@@ -119,8 +121,8 @@ class ReleaseIdentityTests(unittest.TestCase):
                 )
 
     def test_curated_stage_contains_runtime_only(self) -> None:
-        build_root = ROOT / "build"
-        build_root.mkdir(exist_ok=True)
+        build_root = REPO_ROOT / "build" / "gnome"
+        build_root.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(dir=build_root) as temporary_directory:
             stage = Path(temporary_directory) / "stage"
             stage_release.build(stage)
