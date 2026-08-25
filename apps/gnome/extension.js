@@ -1000,6 +1000,14 @@ export default class AgentsTrayLimitsExtension extends Extension {
         if (!this._indicator)
             return;
         this._prepareMenu();
+        if (this._usesVideoDeckLayout()) {
+            this._beginVideoDeckLayout(null, null, 'loading');
+            this._addProfileSelector();
+            this._addHeader('NIGHT VIDEO DECK', this._i18n.t('menu.connecting'));
+            this._addMessage(this._i18n.t('menu.loading'));
+            this._endVideoDeckLayout();
+            return;
+        }
         if (this._usesPipboyLayout()) {
             this._beginPipboyLayout(null, null, 'loading');
             this._addProfileSelector();
@@ -1022,6 +1030,8 @@ export default class AgentsTrayLimitsExtension extends Extension {
         const error = this._error ?? {};
         if (this._usesPipboyLayout())
             this._beginPipboyLayout(null, null, 'error');
+        else if (this._usesVideoDeckLayout())
+            this._beginVideoDeckLayout('dead', null, 'error');
         this._addProfileSelector();
         const profile = this._activeProfile();
         this._addHeader(
@@ -1042,6 +1052,10 @@ export default class AgentsTrayLimitsExtension extends Extension {
 
         if (this._usesPipboyLayout())
             this._endPipboyLayout();
+        else if (this._usesVideoDeckLayout()) {
+            this._endVideoDeckLayout();
+            this._syncArtAnimation();
+        }
         else
             this._addCommonActions(true);
     }
@@ -1052,6 +1066,10 @@ export default class AgentsTrayLimitsExtension extends Extension {
 
         if (this._usesPipboyLayout()) {
             this._buildPipboyDataMenu();
+            return;
+        }
+        if (this._usesVideoDeckLayout()) {
+            this._buildVideoDeckDataMenu();
             return;
         }
 
@@ -1105,6 +1123,10 @@ export default class AgentsTrayLimitsExtension extends Extension {
 
     _usesPipboyLayout() {
         return this._theme?.layout === 'pipboy-2000';
+    }
+
+    _usesVideoDeckLayout() {
+        return this._theme?.layout === 'video-deck';
     }
 
     _accountHeading() {
@@ -1216,6 +1238,328 @@ export default class AgentsTrayLimitsExtension extends Extension {
 
         this._endPipboyLayout();
         this._syncArtAnimation();
+    }
+
+    _buildVideoDeckDataMenu() {
+        this._prepareMenu();
+
+        const remaining = primaryCodexRemaining(this._data);
+        const status = statusForRemaining(remaining);
+        this._beginVideoDeckLayout(status, remaining, 'normal');
+        this._addProfileSelector();
+
+        const [accountTitle, accountSubtitle] = this._accountHeading();
+        this._addHeader(
+            accountTitle,
+            accountSubtitle,
+            formatUpdated(this._data.fetchedAt, this._i18n)
+        );
+        if (status)
+            this._addVideoDeckState(status, Math.round(remaining));
+        else
+            this._addMessage(this._i18n.t('menu.noPrimary'));
+
+        const buckets = this._getBuckets();
+        if (buckets.length === 0) {
+            this._addMessage(this._i18n.t('menu.noActiveLimits'));
+        } else {
+            for (const [index, bucket] of buckets.entries()) {
+                const title = buckets.length > 1
+                    ? humanizeBucket(bucket)
+                    : this._i18n.t('menu.limits');
+                this._addSection(title);
+                this._addBucket(bucket);
+                if (index === buckets.length - 1)
+                    this._addResetCredits();
+            }
+        }
+
+        if (this._settings.get_boolean('show-tokens'))
+            this._addTokenUsage();
+
+        this._endVideoDeckLayout();
+        this._syncArtAnimation();
+    }
+
+    _beginVideoDeckLayout(status, remaining, mode) {
+        const item = new PopupMenu.PopupMenuItem('', {
+            reactive: false,
+            can_focus: false,
+            hover: false,
+            style_class: 'agents-tray-limits-video-deck-item',
+        });
+        item.label.hide();
+
+        const device = new St.Widget({
+            layout_manager: new Clutter.FixedLayout(),
+            width: 680,
+            height: 520,
+            clip_to_allocation: true,
+            style_class: 'agents-tray-limits-video-deck-device',
+        });
+        const title = new St.Label({
+            text: 'NIGHT VIDEO DECK',
+            x: 24,
+            y: 17,
+            width: 200,
+            height: 22,
+            x_align: Clutter.ActorAlign.CENTER,
+            y_align: Clutter.ActorAlign.CENTER,
+            style_class: 'agents-tray-limits-video-deck-title',
+        });
+        title.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
+        title.clutter_text.line_wrap = false;
+        title.clutter_text.single_line_mode = true;
+        device.add_child(title);
+
+        const preview = new St.Widget({
+            layout_manager: new Clutter.FixedLayout(),
+            x: 27,
+            y: 48,
+            width: 200,
+            height: 172,
+            clip_to_allocation: true,
+            style_class: `agents-tray-limits-video-deck-preview ${mode}`,
+        });
+        preview.add_child(new St.Label({
+            text: '● REC',
+            x: 10,
+            y: 8,
+            style_class: 'agents-tray-limits-video-deck-rec',
+        }));
+        preview.add_child(new St.Label({
+            text: 'CH-1',
+            x: 158,
+            y: 8,
+            style_class: 'agents-tray-limits-video-deck-channel',
+        }));
+
+        if (status && this._theme?.artPaths?.[status]) {
+            const paths = this._theme.frameAnimationPaths?.[status] ??
+                [this._theme.artPaths[status]];
+            for (const path of paths) {
+                const icon = new St.Icon({
+                    gicon: new Gio.FileIcon({file: Gio.File.new_for_path(path)}),
+                    icon_size: 156,
+                    x: 22,
+                    y: 5,
+                    width: 156,
+                    height: 156,
+                    style_class: 'agents-tray-limits-video-deck-art',
+                });
+                icon.visible = true;
+                icon.opacity = 0;
+                preview.add_child(icon);
+                this._menuArtFrames.push(icon);
+            }
+            this._menuArtStatus = status;
+            if (this._menuArtFrames.length === 1)
+                this._menuArt = this._menuArtFrames[0];
+            this._showMenuArtFrame(this._menuArtFrames.length - 1);
+
+            const previewStatus = mode === 'error' || status === 'dead'
+                ? this._i18n.t('videoDeck.offline')
+                : this._i18n.t(STATUS_DETAILS[status].key);
+            const statusLabel = new St.Label({
+                text: previewStatus,
+                x: 8,
+                y: 149,
+                width: 184,
+                height: 18,
+                x_align: Clutter.ActorAlign.CENTER,
+                style_class: 'agents-tray-limits-video-deck-preview-status',
+            });
+            statusLabel.clutter_text.ellipsize = Pango.EllipsizeMode.END;
+            statusLabel.clutter_text.line_wrap = false;
+            statusLabel.clutter_text.single_line_mode = true;
+            preview.add_child(statusLabel);
+        } else {
+            const standby = new St.Bin({
+                x: 0,
+                y: 0,
+                width: 200,
+                height: 172,
+                x_align: Clutter.ActorAlign.CENTER,
+                y_align: Clutter.ActorAlign.CENTER,
+                child: new St.Label({
+                    text: this._i18n.t(mode === 'loading'
+                        ? 'videoDeck.standby'
+                        : 'videoDeck.offline'),
+                    style_class: 'agents-tray-limits-video-deck-standby',
+                }),
+            });
+            preview.add_child(standby);
+        }
+        device.add_child(preview);
+
+        const activeProvider = this._activeProfile()?.provider ?? 'codex';
+        device.add_child(this._createVideoDeckButton(
+            this._i18n.t('videoDeck.refresh'),
+            'view-refresh-symbolic',
+            20, 451, 74, 58,
+            this._i18n.t('a11y.refresh'),
+            () => this._refresh(),
+            !this._isRefreshInProgress()
+        ));
+        device.add_child(this._createVideoDeckButton(
+            activeProvider === 'claude' ? 'CLAUDE' : 'CODEX',
+            'web-browser-symbolic',
+            96, 451, 74, 58,
+            this._i18n.t('a11y.openProvider', {provider: providerName(activeProvider)}),
+            () => {
+                this._indicator.menu.close();
+                this._openUrl(providerUrl(activeProvider));
+            }
+        ));
+        device.add_child(this._createVideoDeckButton(
+            this._i18n.t('videoDeck.settings'),
+            'preferences-system-symbolic',
+            497, 451, 80, 58,
+            this._i18n.t('a11y.settings'),
+            () => {
+                this._indicator.menu.close();
+                this.openPreferences();
+            }
+        ));
+        device.add_child(this._createVideoDeckButton(
+            this._i18n.t('videoDeck.close'),
+            'window-close-symbolic',
+            579, 451, 80, 58,
+            this._i18n.t('a11y.close'),
+            () => this._indicator.menu.close()
+        ));
+
+        const screenTitle = new St.Label({
+            text: this._i18n.t(mode === 'normal'
+                ? 'videoDeck.screenOnline'
+                : 'videoDeck.screenDiagnostics'),
+            x: 257,
+            y: 47,
+            width: 391,
+            height: 16,
+            x_align: Clutter.ActorAlign.CENTER,
+            style_class: 'agents-tray-limits-video-deck-screen-title',
+        });
+        screenTitle.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
+        screenTitle.clutter_text.line_wrap = false;
+        screenTitle.clutter_text.single_line_mode = true;
+        device.add_child(screenTitle);
+
+        const scroll = new St.ScrollView({
+            x: 257,
+            y: 65,
+            width: 391,
+            height: 350,
+            clip_to_allocation: true,
+            hscrollbar_policy: St.PolicyType.NEVER,
+            vscrollbar_policy: St.PolicyType.AUTOMATIC,
+            overlay_scrollbars: false,
+            enable_mouse_scrolling: true,
+            style_class: 'agents-tray-limits-video-deck-screen',
+        });
+        scroll.update_fade_effect?.(new Clutter.Margin({
+            top: 0,
+            right: 0,
+            bottom: 0,
+            left: 0,
+        }));
+        const content = new St.BoxLayout({
+            vertical: true,
+            x_expand: true,
+            x_align: Clutter.ActorAlign.FILL,
+            style_class: 'agents-tray-limits-video-deck-screen-content',
+        });
+        scroll.set_child(content);
+        scroll.get_vadjustment().connect('notify::value', () => {
+            content.queue_redraw();
+            scroll.queue_redraw();
+            device.queue_redraw();
+        });
+        device.add_child(scroll);
+
+        item.add_child(device);
+        this._indicator.menu.addMenuItem(item);
+        this._contentTarget = content;
+    }
+
+    _createVideoDeckButton(
+        label, iconName, x, y, width, height, accessibleName, callback, sensitive = true
+    ) {
+        const button = new St.Button({
+            x,
+            y,
+            width,
+            height,
+            reactive: sensitive,
+            can_focus: sensitive,
+            track_hover: sensitive,
+            accessible_name: accessibleName,
+            style_class: 'agents-tray-limits-video-deck-button',
+        });
+        const content = new St.BoxLayout({
+            vertical: true,
+            x_expand: true,
+            y_expand: true,
+            translation_y: -2,
+            x_align: Clutter.ActorAlign.CENTER,
+            y_align: Clutter.ActorAlign.CENTER,
+            style_class: 'agents-tray-limits-video-deck-button-content',
+        });
+        content.add_child(new St.Icon({
+            icon_name: iconName,
+            icon_size: 18,
+            x_align: Clutter.ActorAlign.CENTER,
+            style_class: 'agents-tray-limits-video-deck-button-icon',
+        }));
+        const buttonLabel = new St.Label({
+            text: label,
+            x_align: Clutter.ActorAlign.CENTER,
+            style_class: 'agents-tray-limits-video-deck-button-label',
+        });
+        buttonLabel.clutter_text.ellipsize = Pango.EllipsizeMode.END;
+        buttonLabel.clutter_text.line_wrap = false;
+        buttonLabel.clutter_text.single_line_mode = true;
+        content.add_child(buttonLabel);
+        button.set_child(content);
+        if (!sensitive)
+            button.add_style_pseudo_class('insensitive');
+        if (sensitive) {
+            button.connect('enter-event', () => {
+                this._setPointerCursor(true);
+                return Clutter.EVENT_PROPAGATE;
+            });
+            button.connect('leave-event', () => {
+                this._setPointerCursor(false);
+                return Clutter.EVENT_PROPAGATE;
+            });
+        }
+        button.connect('clicked', callback);
+        button.connect_after('button-press-event', () => Clutter.EVENT_STOP);
+        button.connect_after('button-release-event', () => Clutter.EVENT_STOP);
+        return button;
+    }
+
+    _addVideoDeckState(status, remaining) {
+        const row = new St.BoxLayout({
+            x_expand: true,
+            style_class: 'agents-tray-limits-video-deck-state-row',
+        });
+        row.add_child(new St.Label({
+            text: status === 'dead'
+                ? this._i18n.t('videoDeck.offline')
+                : this._i18n.t(STATUS_DETAILS[status].key),
+            x_expand: true,
+            style_class: 'agents-tray-limits-theme-state',
+        }));
+        row.add_child(new St.Label({
+            text: this._i18n.t('status.remainingUpper', {value: remaining}),
+            style_class: 'agents-tray-limits-theme-remaining',
+        }));
+        this._addStaticActor(row);
+    }
+
+    _endVideoDeckLayout() {
+        this._contentTarget = null;
     }
 
     _beginPipboyLayout(status, remaining, mode) {
@@ -1770,7 +2114,7 @@ export default class AgentsTrayLimitsExtension extends Extension {
     }
 
     _preparePipboyLabel(label, wrap = true) {
-        if (!this._usesPipboyLayout())
+        if (!this._usesPipboyLayout() && !this._usesVideoDeckLayout())
             return label;
         label.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
         label.clutter_text.line_wrap = wrap;

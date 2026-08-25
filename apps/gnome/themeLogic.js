@@ -362,7 +362,7 @@ export function validateThemeManifest(manifest, directoryName = null) {
     if (animationResult.animation && frameAnimationResult.frameAnimation)
         return {ok: false, error: 'animation and frameAnimation are mutually exclusive'};
 
-    if (layout !== null && layout !== 'pipboy-2000')
+    if (layout !== null && !['pipboy-2000', 'video-deck'].includes(layout))
         return {ok: false, error: 'unsupported theme layout'};
 
     return {

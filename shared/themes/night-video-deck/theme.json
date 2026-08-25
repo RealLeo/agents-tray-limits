@@ -1,0 +1,47 @@
+{
+  "version": 2,
+  "id": "night-video-deck",
+  "name": "Night Video Deck",
+  "description": "A nocturnal VCR and CRT console with one gray tabby whose condition reflects the remaining limit.",
+  "platforms": {
+    "gnome": {
+      "stylesheet": "theme.css",
+      "layout": "video-deck"
+    },
+    "macos": {
+      "layout": "classic",
+      "palette": {
+        "background": "#080D14FF",
+        "surface": "#111A25FF",
+        "primary": "#79C9F5FF",
+        "secondary": "#3B7092FF",
+        "text": "#B9D9EBFF",
+        "muted": "#6D8796FF",
+        "warning": "#E3A34DFF",
+        "critical": "#D84D6AFF"
+      },
+      "typography": {"family": "monospaced", "scale": 0.95}
+    }
+  },
+  "art": {
+    "good": "assets/art/good.png",
+    "worried": "assets/art/worried.png",
+    "critical": "assets/art/critical.png",
+    "dead": "assets/art/dead.png"
+  },
+  "panelArt": {
+    "good": "assets/panel/good.png",
+    "worried": "assets/panel/worried.png",
+    "critical": "assets/panel/critical.png",
+    "dead": "assets/panel/dead.png"
+  },
+  "animation": {
+    "intervalMs": 900,
+    "steps": [
+      {"x": 0, "y": 0, "opacity": 255, "scale": 1.0},
+      {"x": 0, "y": -1, "opacity": 246, "scale": 1.002},
+      {"x": 1, "y": 0, "opacity": 252, "scale": 1.0},
+      {"x": 0, "y": 0, "opacity": 249, "scale": 0.999}
+    ]
+  }
+}

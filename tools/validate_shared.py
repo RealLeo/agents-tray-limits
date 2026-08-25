@@ -74,8 +74,8 @@ def validate_locales() -> None:
         raise ValueError("shared locales must contain exactly five supported catalogs")
     english_keys = set(catalogs["en"])
     translation_keys = english_keys - {"_meta"}
-    if len(translation_keys) != 204:
-        raise ValueError(f"English locale must retain the 204-key baseline, found {len(translation_keys)}")
+    if len(translation_keys) != 213:
+        raise ValueError(f"English locale must retain the 213-key baseline, found {len(translation_keys)}")
     for language, catalog in catalogs.items():
         if set(catalog) != english_keys:
             raise ValueError(f"{language}: locale key set differs from English")
@@ -104,6 +104,17 @@ def validate_theme(path: Path) -> None:
         platforms = manifest.get("platforms")
         if not isinstance(platforms, dict) or not platforms:
             raise ValueError(f"{path}: v2 requires platforms")
+        gnome = platforms.get("gnome")
+        if isinstance(gnome, dict):
+            if gnome.get("layout") not in {None, "pipboy-2000", "video-deck"}:
+                raise ValueError(f"{path}: invalid GNOME layout")
+            stylesheet = gnome.get("stylesheet")
+            if stylesheet is not None and (
+                not safe_path(stylesheet)
+                or not (path / stylesheet).is_file()
+                or (path / stylesheet).is_symlink()
+            ):
+                raise ValueError(f"{path}: unsafe or missing GNOME stylesheet")
         macos = platforms.get("macos")
         if isinstance(macos, dict):
             if macos.get("layout") not in {"classic", "pipboy-2000", "pipboy-3000"}:

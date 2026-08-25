@@ -1,0 +1,325 @@
+.agents-tray-limits-theme-night-video-deck.popup-menu-boxpointer,
+.agents-tray-limits-theme-night-video-deck .popup-menu-boxpointer {
+  -arrow-background-color: transparent;
+  -arrow-border-color: transparent;
+  -arrow-border-width: 0;
+  -arrow-base: 0;
+  -arrow-rise: 0;
+}
+
+.agents-tray-limits-theme-night-video-deck .popup-menu-content {
+  padding: 0;
+  color: #9dcde7;
+  background-image: none;
+  background-color: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  font-family: monospace;
+}
+
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-video-deck-item,
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-video-deck-item:hover,
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-video-deck-item:focus {
+  padding: 0;
+  margin: 0;
+  background-color: transparent;
+}
+
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-video-deck-device {
+  width: 680px;
+  height: 520px;
+  padding: 0;
+  color: #9dcde7;
+  background-image: url("assets/ui/device-shell.png");
+  background-size: 680px 520px;
+  background-repeat: no-repeat;
+  background-color: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-video-deck-title {
+  padding: 0;
+  color: #aebac3;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95);
+}
+
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-video-deck-preview {
+  padding: 0;
+  background-color: transparent;
+  border: 0;
+  border-radius: 12px;
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.8);
+}
+
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-video-deck-preview.loading,
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-video-deck-preview.error {
+  background-color: rgba(0, 4, 8, 0.38);
+}
+
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-video-deck-art {
+  icon-shadow: 0 2px 5px rgba(0, 0, 0, 0.88);
+}
+
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-video-deck-rec,
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-video-deck-channel {
+  color: #75c8e7;
+  font-size: 9px;
+  font-weight: 800;
+  text-shadow: 0 0 4px rgba(67, 183, 224, 0.55);
+}
+
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-video-deck-rec {
+  color: #6fcf84;
+}
+
+.agents-tray-limits-theme-night-video-deck.agents-tray-limits-status-worried .agents-tray-limits-video-deck-rec {
+  color: #e3a34d;
+  text-shadow: 0 0 4px rgba(227, 163, 77, 0.55);
+}
+
+.agents-tray-limits-theme-night-video-deck.agents-tray-limits-status-critical .agents-tray-limits-video-deck-rec,
+.agents-tray-limits-theme-night-video-deck.agents-tray-limits-status-dead .agents-tray-limits-video-deck-rec {
+  color: #d84d6a;
+  text-shadow: 0 0 4px rgba(216, 77, 106, 0.62);
+}
+
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-video-deck-preview-status {
+  padding: 2px 4px;
+  color: #77c9ee;
+  background-color: rgba(1, 9, 14, 0.76);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-shadow: 0 0 4px rgba(70, 184, 229, 0.55);
+}
+
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-video-deck-standby {
+  color: #587b8d;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-shadow: 0 0 4px rgba(56, 136, 171, 0.4);
+}
+
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-video-deck-button {
+  padding: 3px 4px;
+  color: #a8b7c0;
+  background-color: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+}
+
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-video-deck-button:hover {
+  color: #d5ecf7;
+  background-color: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-video-deck-button:focus {
+  color: #d5ecf7;
+  background-color: transparent;
+  border-color: rgba(105, 188, 226, 0.55);
+  box-shadow: none;
+}
+
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-video-deck-button:active {
+  color: #87a1ae;
+  background-color: rgba(0, 0, 0, 0.28);
+  border-color: rgba(62, 112, 136, 0.65);
+}
+
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-video-deck-button:insensitive {
+  opacity: 0.42;
+}
+
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-video-deck-button-content {
+  spacing: 3px;
+}
+
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-video-deck-button-icon {
+  color: #aab8c0;
+  icon-shadow: 0 1px 2px rgba(0, 0, 0, 0.95);
+}
+
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-video-deck-button:hover .agents-tray-limits-video-deck-button-icon,
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-video-deck-button:focus .agents-tray-limits-video-deck-button-icon {
+  color: #d6eef9;
+}
+
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-video-deck-button-label {
+  max-width: 96px;
+  color: inherit;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95);
+}
+
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-video-deck-screen-title {
+  padding: 0;
+  color: #66b7df;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-shadow: 0 0 4px rgba(66, 173, 222, 0.48);
+}
+
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-video-deck-screen {
+  min-width: 0;
+  padding: 0;
+  background-color: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-video-deck-screen-content {
+  min-width: 0;
+  padding: 8px 18px 12px 12px;
+  spacing: 7px;
+  color: #9dcde7;
+}
+
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-pipboy-section {
+  margin-top: 3px;
+  padding: 4px 2px 3px 2px;
+  color: #83c9e9;
+  border-bottom: 1px solid #356881;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-shadow: 0 0 4px rgba(83, 178, 220, 0.34);
+}
+
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-video-deck-state-row {
+  spacing: 12px;
+  padding: 6px 8px;
+  background-color: rgba(6, 24, 35, 0.56);
+  border: 1px solid #356881;
+  border-radius: 2px;
+}
+
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-header {
+  min-width: 0;
+  spacing: 2px;
+  padding: 1px 0 4px 0;
+}
+
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-header-title {
+  color: #a9d8ed;
+  font-size: 14px;
+  font-weight: 800;
+  text-shadow: 0 0 4px rgba(72, 167, 209, 0.35);
+}
+
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-header-title,
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-limit-title,
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-limit-value,
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-stat-value {
+  color: #9dcde7;
+}
+
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-muted {
+  color: #668ca0;
+  opacity: 1;
+}
+
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-profile-button {
+  padding: 4px 6px;
+  color: #8bbdd6;
+  background-color: transparent;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  font-family: monospace;
+  font-size: 10px;
+  text-align: left;
+}
+
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-profile-button:hover,
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-profile-button:focus,
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-profile-button.selected {
+  color: #b9e3f5;
+  background-color: rgba(49, 109, 139, 0.34);
+  border-color: #3d7896;
+}
+
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-message,
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-error {
+  color: #8fc4df;
+}
+
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-error,
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-critical-text {
+  color: #e07186;
+}
+
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-limit {
+  min-width: 0;
+  spacing: 5px;
+}
+
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-progress-track {
+  border: 1px solid #356881;
+  border-radius: 1px;
+  background-color: #07131c;
+}
+
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-progress-fill {
+  border-radius: 0;
+  background-color: #67b9e1;
+}
+
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-progress-fill.warning {
+  background-color: #e3a34d;
+}
+
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-progress-fill.critical {
+  background-color: #d84d6a;
+}
+
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-stats {
+  min-width: 0;
+}
+
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-theme-state,
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-theme-remaining {
+  color: #85d0ef;
+  font-weight: 800;
+}
+
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-theme-remaining {
+  font-feature-settings: "tnum";
+}
+
+.agents-tray-limits-theme-night-video-deck .agents-tray-limits-panel-label {
+  color: #79c9f5;
+  font-family: monospace;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.86);
+}
+
+.agents-tray-limits-theme-night-video-deck.agents-tray-limits-status-good .agents-tray-limits-panel-label,
+.agents-tray-limits-theme-night-video-deck.agents-tray-limits-status-good .agents-tray-limits-theme-state {
+  color: #79c9f5;
+}
+
+.agents-tray-limits-theme-night-video-deck.agents-tray-limits-status-worried .agents-tray-limits-panel-label,
+.agents-tray-limits-theme-night-video-deck.agents-tray-limits-status-worried .agents-tray-limits-theme-state {
+  color: #e3a34d;
+}
+
+.agents-tray-limits-theme-night-video-deck.agents-tray-limits-status-critical .agents-tray-limits-panel-label,
+.agents-tray-limits-theme-night-video-deck.agents-tray-limits-status-critical .agents-tray-limits-theme-state {
+  color: #e07186;
+}
+
+.agents-tray-limits-theme-night-video-deck.agents-tray-limits-status-dead .agents-tray-limits-panel-label,
+.agents-tray-limits-theme-night-video-deck.agents-tray-limits-status-dead .agents-tray-limits-theme-state {
+  color: #8295a0;
+}

@@ -96,7 +96,7 @@
       "additionalProperties": false,
       "properties": {
         "stylesheet": {"$ref": "#/$defs/path"},
-        "layout": {"enum": ["pipboy-2000"]}
+        "layout": {"enum": ["pipboy-2000", "video-deck"]}
       }
     },
     "macos": {

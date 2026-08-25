@@ -138,6 +138,12 @@ class ReleaseIdentityTests(unittest.TestCase):
             for locale in ("en", "ru", "de", "fr", "zh-CN"):
                 self.assertIn(f"locales/{locale}.json", names)
             self.assertIn("themes/fallout-2/assets/ui/device-shell-v3.png", names)
+            self.assertIn("themes/night-video-deck/theme.json", names)
+            self.assertIn("themes/night-video-deck/theme.css", names)
+            self.assertIn("themes/night-video-deck/assets/ui/device-shell.png", names)
+            for status in ("good", "worried", "critical", "dead"):
+                self.assertIn(f"themes/night-video-deck/assets/art/{status}.png", names)
+                self.assertIn(f"themes/night-video-deck/assets/panel/{status}.png", names)
             self.assertNotIn("README.md", names)
             self.assertFalse(any(name.startswith("tests/") for name in names))
             self.assertFalse(any(name.startswith("tools/") for name in names))

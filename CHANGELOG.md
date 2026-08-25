@@ -6,6 +6,11 @@ The project uses the integer version in `metadata.json`; Git release tags use th
 
 ## [Unreleased]
 
+### Added
+
+- Added the built-in Night Video Deck theme: a 680×520 VCR/CRT GNOME layout with one gray tabby across four resource states, localized hardware controls, subtle CRT motion, and a Classic fallback on macOS.
+- Extended theme manifest v2 with the GNOME `video-deck` layout.
+
 ## [18] - 2026-08-25
 
 ### Changed

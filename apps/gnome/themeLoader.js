@@ -207,6 +207,7 @@ function localizeBuiltInTheme(theme, i18n) {
     const key = {
         'fallout-2': 'fallout2',
         'fallout-3': 'fallout3',
+        'night-video-deck': 'nightVideoDeck',
     }[theme.id];
     if (!key)
         return theme;

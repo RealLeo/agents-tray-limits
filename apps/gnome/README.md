@@ -34,7 +34,7 @@
   <tr>
     <td width="33%" align="center"><strong>☢ TWO PROVIDERS</strong><br><code>CODEX + CLAUDE CODE</code><br><sub>One local monitor for both CLIs</sub></td>
     <td width="33%" align="center"><strong>▣ MULTI-PROFILE</strong><br><code>PERSONAL + WORK</code><br><sub>Isolated accounts, instant switching</sub></td>
-    <td width="33%" align="center"><strong>◉ THREE INTERFACES</strong><br><code>FALLOUT 2 + FALLOUT 3 + CLASSIC</code><br><sub>From native GNOME to full Pip-Boy</sub></td>
+    <td width="33%" align="center"><strong>◉ FOUR INTERFACES</strong><br><code>VIDEO DECK + FALLOUT 2/3 + CLASSIC</code><br><sub>From native GNOME to full hardware consoles</sub></td>
   </tr>
 </table>
 
@@ -49,14 +49,15 @@ profile and switches between them instantly.
 
 - Explicit Codex and Claude Code profiles with isolated configuration directories.
 - A compact panel value such as `65% · reset 4d 22h`, calculated from the selected profile's primary window.
-- A profile summary and instant switching in the Classic, Fallout 3, and Pip-Boy interfaces.
+- A profile summary and instant switching in the Classic, Fallout 3, Pip-Boy, and Night Video Deck interfaces.
 - Remaining-usage and used-usage display modes.
 - Detailed primary, secondary, and additional rate-limit groups in the menu.
 - Reset countdowns and optional token statistics.
 - Automatic Codex CLI discovery, including NVM, Volta, Bun, pnpm, asdf, and mise installations.
-- Three built-in themes:
+- Four built-in themes:
   - `fallout-2`, the default Pip-Boy 2000-inspired theme with one-shot character animations;
   - `fallout-3`, a bright green CRT-inspired theme;
+  - `night-video-deck`, a dark VCR/CRT console where one gray tabby's condition reflects the remaining limit;
   - `classic`, the native GNOME-style fallback.
 - Declarative user themes without executable theme code.
 - English, Russian, German, French, and Simplified Chinese interfaces.
@@ -249,6 +250,8 @@ Theme IDs may contain lowercase ASCII letters, digits, `_`, and `-`; the directo
 All manifest paths must resolve to regular raster files inside the theme directory. Absolute paths, `..` traversal, and symbolic links are rejected. User themes may override built-in IDs except for the reserved `classic` theme. Use **Reload themes** in preferences after editing a theme.
 
 Theme names and descriptions from user manifests are displayed exactly as authored. Built-in theme metadata follows the selected interface language.
+
+Manifest v2 themes may select the GNOME hardware layout `pipboy-2000` or `video-deck` under `platforms.gnome.layout`. Night Video Deck uses `video-deck` on GNOME and deliberately falls back to the existing `classic` layout on macOS while retaining its status artwork.
 
 <a id="privacy"></a>
 ## 09 // PRIVACY

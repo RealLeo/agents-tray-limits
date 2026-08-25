@@ -14,6 +14,9 @@ SOURCE = (EXTENSION / "extension.js").read_text(encoding="utf-8")
 PREFS = (EXTENSION / "prefs.js").read_text(encoding="utf-8")
 CSS = (SHARED_ROOT / "themes" / "fallout-2" / "theme.css").read_text(encoding="utf-8")
 ASSETS = SHARED_ROOT / "themes" / "fallout-2" / "assets"
+VIDEO_ROOT = SHARED_ROOT / "themes" / "night-video-deck"
+VIDEO_CSS = (VIDEO_ROOT / "theme.css").read_text(encoding="utf-8")
+VIDEO_ASSETS = VIDEO_ROOT / "assets"
 
 
 def png_header(path):
@@ -318,6 +321,123 @@ class PipboyUiSourceTests(unittest.TestCase):
         self.assertIn("button.connect('destroy'", method)
         self.assertGreaterEqual(SOURCE.count("this._hidePipboyTooltip()"), 3)
         self.assertIn(".agents-tray-limits-pipboy-tooltip {", CSS)
+
+
+class NightVideoDeckUiSourceTests(unittest.TestCase):
+    def test_fixed_geometry_matches_the_production_shell(self):
+        method = SOURCE.split("_beginVideoDeckLayout(status, remaining, mode) {", 1)[1]
+        method = method.split("\n    _createVideoDeckButton(", 1)[0]
+        for geometry in (
+            "width: 680,\n            height: 520",
+            "x: 27,\n            y: 48,\n            width: 200,\n            height: 172",
+            "x: 257,\n            y: 65,\n            width: 391,\n            height: 350",
+        ):
+            self.assertIn(geometry, method)
+        self.assertIn("layout_manager: new Clutter.FixedLayout()", method)
+        self.assertIn("hscrollbar_policy: St.PolicyType.NEVER", method)
+        self.assertIn("vscrollbar_policy: St.PolicyType.AUTOMATIC", method)
+        device_rule = VIDEO_CSS.split(
+            ".agents-tray-limits-video-deck-device {", 1
+        )[1].split("}", 1)[0]
+        self.assertIn("width: 680px", device_rule)
+        self.assertIn("height: 520px", device_rule)
+        self.assertIn('background-image: url("assets/ui/device-shell.png")', device_rule)
+
+    def test_real_actions_surround_decorative_transport_controls(self):
+        method = SOURCE.split("_beginVideoDeckLayout(status, remaining, mode) {", 1)[1]
+        method = method.split("_createVideoDeckButton(\n        label", 1)[0]
+        self.assertEqual(method.count("this._createVideoDeckButton("), 4)
+        buttons = ((20, 74), (96, 74), (497, 80), (579, 80))
+        for x, width in buttons:
+            self.assertIn(f"{x}, 451, {width}, 58", method)
+        self.assertEqual(buttons[1][0] - sum(buttons[0]), 2)
+        self.assertEqual(buttons[3][0] - sum(buttons[2]), 2)
+        self.assertLess(buttons[1][0] + buttons[1][1], 207)
+        self.assertGreater(buttons[2][0], 486)
+        self.assertIn("videoDeck.refresh", method)
+        self.assertIn("videoDeck.settings", method)
+        self.assertIn("videoDeck.close", method)
+        self.assertIn("activeProvider === 'claude' ? 'CLAUDE' : 'CODEX'", method)
+        button = SOURCE.split("_createVideoDeckButton(\n        label", 1)[1]
+        button = button.split("_addVideoDeckState(", 1)[0]
+        self.assertIn("can_focus: sensitive", button)
+        self.assertIn("accessible_name: accessibleName", button)
+        self.assertIn("translation_y: -2", button)
+        self.assertNotIn("this._showPipboyTooltip", button)
+        self.assertNotIn("this._hidePipboyTooltip", button)
+        self.assertNotIn("media-skip", button)
+
+    def test_normal_loading_and_error_use_one_video_deck_shell(self):
+        loading = SOURCE.split("_buildLoadingMenu() {", 1)[1].split(
+            "_buildErrorMenu() {", 1
+        )[0]
+        self.assertIn("this._beginVideoDeckLayout(null, null, 'loading')", loading)
+        self.assertIn("this._endVideoDeckLayout()", loading)
+
+        error = SOURCE.split("_buildErrorMenu() {", 1)[1].split(
+            "_buildDataMenu() {", 1
+        )[0]
+        self.assertIn("this._beginVideoDeckLayout('dead', null, 'error')", error)
+        self.assertIn("this._syncArtAnimation()", error)
+
+        data = SOURCE.split("_buildVideoDeckDataMenu() {", 1)[1].split(
+            "\n    _beginVideoDeckLayout", 1
+        )[0]
+        for marker in (
+            "this._addProfileSelector()",
+            "this._addVideoDeckState(status, Math.round(remaining))",
+            "this._addBucket(bucket)",
+            "this._addResetCredits()",
+            "this._addTokenUsage()",
+            "this._syncArtAnimation()",
+        ):
+            self.assertIn(marker, data)
+
+    def test_assets_manifest_and_crt_animation_contract(self):
+        manifest = json.loads((VIDEO_ROOT / "theme.json").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["id"], "night-video-deck")
+        self.assertEqual(manifest["platforms"]["gnome"]["layout"], "video-deck")
+        self.assertEqual(manifest["platforms"]["macos"]["layout"], "classic")
+        self.assertEqual(manifest["animation"]["intervalMs"], 900)
+        self.assertEqual(len(manifest["animation"]["steps"]), 4)
+        self.assertTrue(all(abs(step.get("x", 0)) <= 1 for step in manifest["animation"]["steps"]))
+        self.assertTrue(all(abs(step.get("y", 0)) <= 1 for step in manifest["animation"]["steps"]))
+
+        self.assertEqual(png_header(VIDEO_ASSETS / "ui" / "device-shell.png"), (1360, 1040, 2))
+        for group, size in (("art", 512), ("panel", 256)):
+            actual = {path.name for path in (VIDEO_ASSETS / group).glob("*.png")}
+            self.assertEqual(actual, {"good.png", "worried.png", "critical.png", "dead.png"})
+            for status in actual:
+                self.assertEqual(png_header(VIDEO_ASSETS / group / status), (size, size, 6))
+
+    def test_video_deck_css_keeps_dynamic_surfaces_clear(self):
+        popup = VIDEO_CSS.split(
+            ".agents-tray-limits-theme-night-video-deck .popup-menu-content {", 1
+        )[1].split("}", 1)[0]
+        self.assertIn("background-color: transparent", popup)
+        self.assertIn("box-shadow: none", popup)
+        screen = VIDEO_CSS.split(
+            ".agents-tray-limits-video-deck-screen {", 1
+        )[1].split("}", 1)[0]
+        self.assertIn("background-color: transparent", screen)
+        content = VIDEO_CSS.split(
+            ".agents-tray-limits-video-deck-screen-content {", 1
+        )[1].split("}", 1)[0]
+        self.assertIn("padding: 8px 18px 12px 12px", content)
+        hover = VIDEO_CSS.split(
+            ".agents-tray-limits-video-deck-button:hover {", 1
+        )[1].split("}", 1)[0]
+        self.assertIn("background-color: transparent", hover)
+        self.assertIn("border-color: transparent", hover)
+        self.assertIn("box-shadow: none", hover)
+        focus = VIDEO_CSS.split(
+            ".agents-tray-limits-video-deck-button:focus {", 1
+        )[1].split("}", 1)[0]
+        self.assertIn("background-color: transparent", focus)
+        self.assertIn("border-color: rgba(105, 188, 226, 0.55)", focus)
+        self.assertIn("box-shadow: none", focus)
+        self.assertIn(".agents-tray-limits-video-deck-button:insensitive", VIDEO_CSS)
+        self.assertNotIn(".agents-tray-limits-pipboy-tooltip", VIDEO_CSS)
 
 
 if __name__ == "__main__":

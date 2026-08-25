@@ -194,6 +194,17 @@ def verify(archive: Path) -> None:
             "icons/agents-tray-limits-symbolic.svg",
             "themes/fallout-2/theme.json",
             "themes/fallout-3/theme.json",
+            "themes/night-video-deck/theme.json",
+            "themes/night-video-deck/theme.css",
+            "themes/night-video-deck/assets/ui/device-shell.png",
+            "themes/night-video-deck/assets/art/good.png",
+            "themes/night-video-deck/assets/art/worried.png",
+            "themes/night-video-deck/assets/art/critical.png",
+            "themes/night-video-deck/assets/art/dead.png",
+            "themes/night-video-deck/assets/panel/good.png",
+            "themes/night-video-deck/assets/panel/worried.png",
+            "themes/night-video-deck/assets/panel/critical.png",
+            "themes/night-video-deck/assets/panel/dead.png",
         }
         missing = required.difference(names)
         if missing:

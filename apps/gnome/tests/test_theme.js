@@ -225,6 +225,37 @@ assert(!validateThemeManifest({
     },
 }).ok, 'more than ten animation steps accepted');
 
+const videoDeckManifest = {
+    ...validManifest,
+    version: 2,
+    stylesheet: undefined,
+    layout: undefined,
+    platforms: {
+        gnome: {stylesheet: 'theme.css', layout: 'video-deck'},
+        macos: {
+            layout: 'classic',
+            palette: {background: '#080D14FF', primary: '#79C9F5FF'},
+            typography: {family: 'monospaced', scale: 0.95},
+        },
+    },
+};
+const videoDeckResult = validateThemeManifest(videoDeckManifest, 'test_theme');
+assert(videoDeckResult.ok, 'valid video-deck v2 manifest rejected');
+assertEqual(videoDeckResult.manifest.layout, 'video-deck', 'video-deck layout was not normalized');
+assertEqual(videoDeckResult.manifest.platforms.macos.layout, 'classic',
+    'video-deck macOS fallback was not preserved');
+assert(!validateThemeManifest({
+    ...videoDeckManifest,
+    platforms: {
+        ...videoDeckManifest.platforms,
+        gnome: {stylesheet: 'theme.css', layout: 'unknown'},
+    },
+}, 'test_theme').ok, 'unknown GNOME v2 layout accepted');
+assert(!validateThemeManifest({
+    ...videoDeckManifest,
+    platforms: {...videoDeckManifest.platforms, windows: {}},
+}, 'test_theme').ok, 'unknown v2 platform accepted');
+
 const tenFramePaths = Object.fromEntries(['good', 'worried', 'critical', 'dead'].map(status => [
     status,
     Array.from({length: 10}, (_value, index) => `frames/${status}/${index + 1}.png`),
@@ -345,6 +376,7 @@ assertEqual(resolveTheme(catalog, 'missing'), classic, 'missing theme must fall 
 const realCatalog = loadThemeCatalog(GLib.get_current_dir(), '/nonexistent/theme-test-root');
 assert(realCatalog.has('fallout-2'), 'built-in Fallout 2 theme was not discovered');
 assert(realCatalog.has('fallout-3'), 'built-in Fallout 3 theme was not discovered');
+assert(realCatalog.has('night-video-deck'), 'built-in Night Video Deck theme was not discovered');
 assert(!realCatalog.has('pipboy-classic'), 'legacy Pip-Boy theme must not be listed');
 assertEqual(realCatalog.get('fallout-2').layout, 'pipboy-2000', 'Fallout 2 layout');
 assertEqual(realCatalog.get('fallout-2').animation, null,
@@ -365,6 +397,21 @@ assertEqual(realCatalog.get('fallout-3').animation.steps.length, 8,
     'Fallout 3 transform animation changed');
 assertEqual(realCatalog.get('fallout-3').frameAnimation, null,
     'Fallout 3 unexpectedly gained frame animation');
+assertEqual(realCatalog.get('night-video-deck').layout, 'video-deck',
+    'Night Video Deck GNOME layout');
+assertEqual(realCatalog.get('night-video-deck').animation.intervalMs, 900,
+    'Night Video Deck CRT animation interval');
+assertEqual(realCatalog.get('night-video-deck').platforms.macos.layout, 'classic',
+    'Night Video Deck macOS fallback');
+assert(realCatalog.get('night-video-deck').panelArtPaths.dead.endsWith('/assets/panel/dead.png'),
+    'Night Video Deck panel art was not loaded');
+const localizedCatalog = loadThemeCatalog(
+    GLib.get_current_dir(), '/nonexistent/theme-test-root', ru
+);
+assertEqual(localizedCatalog.get('night-video-deck').name, 'Night Video Deck',
+    'Night Video Deck localized name');
+assert(localizedCatalog.get('night-video-deck').description.includes('одним серым табби'),
+    'Night Video Deck localized description');
 
 function writeTheme(root, id, options = {}) {
     const themePath = GLib.build_filenamev([root, id]);

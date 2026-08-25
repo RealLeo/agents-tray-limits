@@ -188,13 +188,14 @@ final class CoreTests: XCTestCase {
             let localizer = Localizer(language: language, localeRoot: root)
             XCTAssertNotEqual(localizer.text("actions.refresh"), "actions.refresh", language.rawValue)
             XCTAssertNotEqual(localizer.text("profiles.error"), "profiles.error", language.rawValue)
+            XCTAssertNotEqual(localizer.text("videoDeck.offline"), "videoDeck.offline", language.rawValue)
             XCTAssertFalse(localizer.plural("time.minute", count: 2).contains("{count}"), language.rawValue)
         }
     }
 
     func testBuiltInThemeV2Validation() throws {
         let root = repositoryRoot.appendingPathComponent("shared/themes")
-        for id in ["fallout-2", "fallout-3"] {
+        for id in ["fallout-2", "fallout-3", "night-video-deck"] {
             let directory = root.appendingPathComponent(id)
             let manifest = try JSONDecoder().decode(
                 ThemeManifest.self,
@@ -202,6 +203,11 @@ final class CoreTests: XCTestCase {
             )
             XCTAssertEqual(manifest.version, 2)
             XCTAssertNoThrow(try ThemeValidator.validate(manifest, at: directory))
+            if id == "night-video-deck" {
+                XCTAssertEqual(manifest.macDefinition.layout, .classic)
+                XCTAssertEqual(manifest.animation?.intervalMs, 900)
+                XCTAssertEqual(manifest.macDefinition.typography?.family, "monospaced")
+            }
         }
     }
 

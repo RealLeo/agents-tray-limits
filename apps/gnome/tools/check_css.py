@@ -16,6 +16,7 @@ STYLESHEETS = (
     ROOT / "stylesheet.css",
     SHARED / "themes" / "fallout-2" / "theme.css",
     SHARED / "themes" / "fallout-3" / "theme.css",
+    SHARED / "themes" / "night-video-deck" / "theme.css",
 )
 
 
