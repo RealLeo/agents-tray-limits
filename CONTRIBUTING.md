@@ -70,6 +70,6 @@ For UI changes, also test normal, loading, and error states on a supported GNOME
 - Explain the user-visible result, compatibility impact, and verification performed.
 - Update `README.md` and `CHANGELOG.md` when behavior or installation changes.
 - Do not include unrelated formatting or generated-file changes.
-- Ensure all GitHub Actions checks pass.
+- Run the complete local test and packaging sequence above and include the results in the pull request.
 
 By submitting code or documentation, you agree that your contribution is licensed under the project's MIT License. Asset contributions remain subject to their explicitly documented licenses and are not automatically covered by the MIT License.

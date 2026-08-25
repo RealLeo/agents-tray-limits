@@ -5,7 +5,6 @@
 <p><strong><code>PIP-BOY 2000 // MULTI-PROFILE RATE-LIMIT MONITOR</code></strong></p>
 
 <p>
-  <a href="https://github.com/RealLeo/agents-tray-limits/actions/workflows/ci.yml"><img alt="CI status" src="https://img.shields.io/github/actions/workflow/status/RealLeo/agents-tray-limits/ci.yml?branch=main&amp;style=for-the-badge&amp;label=CI&amp;logo=github&amp;logoColor=white&amp;color=3f873c"></a>
   <a href="https://github.com/RealLeo/agents-tray-limits/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/RealLeo/agents-tray-limits?display_name=tag&amp;sort=semver&amp;style=for-the-badge&amp;label=release&amp;color=8b6b3f"></a>
   <a href="#requirements"><img alt="GNOME Shell 45 to 50" src="https://img.shields.io/badge/GNOME_Shell-45--50-476b38?style=for-the-badge&amp;logo=gnome&amp;logoColor=white"></a>
   <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-b0843e?style=for-the-badge"></a>
