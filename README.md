@@ -31,11 +31,15 @@ make check          # Shared and GNOME checks available on Linux
 make pack           # Backward-compatible GNOME release ZIP
 make check-macos    # Swift/core and Xcode checks when their toolchains exist
 make pack-macos     # Signed/notarized packaging requires macOS credentials
+make clean          # Remove local builds, caches, and generated animation previews
 ```
 
 The existing `make check`, `make pack`, `./install.sh`, and `./uninstall.sh`
 commands retain their GNOME behavior. GitHub Actions are intentionally not
 used; validation and releases are performed locally.
+
+`make clean` removes only known generated outputs. It preserves the accepted
+runtime artwork and the current v16/v18 animation sources, rigs, and fixtures.
 
 Code is licensed under the [MIT License](LICENSE). Fallout/Pip-Boy/Vault
 Boy-inspired raster artwork is excluded from that license; read [NOTICE.md](NOTICE.md)

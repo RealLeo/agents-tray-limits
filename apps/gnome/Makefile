@@ -11,7 +11,7 @@ CHECKSUM := $(ZIP).sha256
 .PHONY: check pack install uninstall clean
 
 check:
-	python3 -m py_compile bin/agents-tray-limits-helper.py tools/check_css.py tools/stage_release.py $(REPO_ROOT)/tools/render_vault_boy_animation.py $(REPO_ROOT)/tools/animation-rig/v16/prepare_shoulder_fix.py $(REPO_ROOT)/tools/animation-rig/v16/verify_master_good.py $(REPO_ROOT)/tools/animation-rig/v18/prepare_assets.py $(REPO_ROOT)/tools/animation-rig/v18/verify_previews.py
+	python3 -m py_compile bin/agents-tray-limits-helper.py tools/check_css.py tools/stage_release.py $(REPO_ROOT)/tools/animation-rig/v16/prepare_shoulder_fix.py $(REPO_ROOT)/tools/animation-rig/v16/verify_master_good.py $(REPO_ROOT)/tools/animation-rig/v18/prepare_assets.py $(REPO_ROOT)/tools/animation-rig/v18/verify_previews.py
 	python3 -m json.tool metadata.json >/dev/null
 	glib-compile-schemas --strict --dry-run schemas
 	node --check extension.js

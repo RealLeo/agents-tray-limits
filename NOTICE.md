@@ -15,7 +15,6 @@ The MIT License in this repository does **not** apply to raster artwork in:
 - `shared/themes/fallout-2/assets/`
 - `shared/themes/fallout-3/assets/`
 - `tools/animation-rig/`
-- `tools/blender-rig/`
 
 These images include or are derived from Fallout, Pip-Boy, and Vault Boy visual material. Fallout, Pip-Boy, Vault Boy, and related names, characters, and visual properties belong to their respective rights holders. This project is unofficial and is not affiliated with, endorsed by, or sponsored by those rights holders.
 

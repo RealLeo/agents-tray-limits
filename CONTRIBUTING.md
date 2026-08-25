@@ -37,6 +37,9 @@ aliases for the published GNOME extension.
 - Add or update tests for behavior changes.
 - Keep source, settings-schema, helper, installation paths, and documentation aligned with `agents-tray-limits@realleo`.
 - Avoid committing generated files such as `dist/`, `gschemas.compiled`, `__pycache__`, previews, and contact sheets.
+- Run `make clean` to remove known local build products, Swift/Python caches,
+  Blender frame dumps, backup rigs, and review previews without touching the
+  accepted runtime artwork or current animation sources.
 
 ### Translations
 

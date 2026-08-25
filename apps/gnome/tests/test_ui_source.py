@@ -8,8 +8,8 @@ ROOT = Path(__file__).resolve().parents[1]
 EXTENSION = ROOT
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SHARED_ROOT = REPO_ROOT / "shared"
-RIG_RENDERER = REPO_ROOT / "tools" / "render_vault_boy_animation.py"
-RIG_CONFIG = REPO_ROOT / "tools" / "animation-rig" / "v15" / "rig.json"
+GOOD_RIG_ROOT = REPO_ROOT / "tools" / "animation-rig" / "v16"
+STATE_RIG_ROOT = REPO_ROOT / "tools" / "animation-rig" / "v18"
 SOURCE = (EXTENSION / "extension.js").read_text(encoding="utf-8")
 PREFS = (EXTENSION / "prefs.js").read_text(encoding="utf-8")
 CSS = (SHARED_ROOT / "themes" / "fallout-2" / "theme.css").read_text(encoding="utf-8")
@@ -238,18 +238,37 @@ class PipboyUiSourceTests(unittest.TestCase):
             SOURCE,
         )
 
-    def test_deterministic_rig_renderer_contract(self):
-        renderer = RIG_RENDERER.read_text(encoding="utf-8")
-        config = json.loads(RIG_CONFIG.read_text(encoding="utf-8"))
-        self.assertEqual(config["frameCount"], 16)
-        self.assertEqual(config["intervalMs"], 50)
-        self.assertEqual(config["baseline"], 480)
-        self.assertIn('SUPERSAMPLE", "4"', renderer)
-        self.assertIn("def ease(value", renderer)
-        self.assertIn("def keyframes(value", renderer)
-        self.assertIn("Image.Resampling.LANCZOS", renderer)
-        self.assertIn("verify_against", renderer)
-        self.assertNotIn("optical flow", renderer.lower())
+    def test_current_deterministic_rig_contracts(self):
+        good = json.loads(
+            (GOOD_RIG_ROOT / "perspective-preview-config-v6.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        critical = json.loads(
+            (STATE_RIG_ROOT / "configs" / "critical-back.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(good["canvas"], [512, 512])
+        self.assertEqual(good["frames"], 32)
+        self.assertEqual(good["intervalMs"], 36)
+        self.assertEqual(good["sourceDir"], "sources/master-v6")
+        self.assertIn("finalRepairMask", good)
+        self.assertEqual(critical["canvas"], [512, 512])
+        self.assertEqual(critical["frames"], 32)
+        self.assertEqual(critical["intervalMs"], 28)
+        self.assertTrue(
+            (STATE_RIG_ROOT / "rigs" / "critical-back.blend").is_file()
+        )
+        builder = (GOOD_RIG_ROOT / "build_master_rig.py").read_text(
+            encoding="utf-8"
+        )
+        preparer = (STATE_RIG_ROOT / "prepare_assets.py").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("--render-good", builder)
+        self.assertIn("Image.Resampling.LANCZOS", preparer)
+        self.assertNotIn("optical flow", (builder + preparer).lower())
 
     def test_lamps_have_no_runtime_actor_or_timer(self):
         runtime = SOURCE + CSS
