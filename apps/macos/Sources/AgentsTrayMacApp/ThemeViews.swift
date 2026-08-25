@@ -12,8 +12,6 @@ struct ThemeContainerView: View {
             ClassicMenuView(store: store, theme: theme)
         case .pipboy2000:
             PipBoy2000View(store: store, theme: theme!)
-        case .pipboy3000:
-            PipBoy3000View(store: store, theme: theme!)
         }
     }
 }
@@ -107,43 +105,6 @@ struct PipBoy2000View: View {
         }
         .frame(width: 680, height: 520)
         .font(.system(size: 12, design: .monospaced))
-    }
-}
-
-struct PipBoy3000View: View {
-    @ObservedObject var store: AppStore
-    let theme: LoadedTheme
-
-    var body: some View {
-        let palette = ThemePalette(theme.manifest.macDefinition.palette)
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("PIP-BOY 3000").font(.system(size: 16, weight: .black, design: .monospaced))
-                Spacer()
-                ProfilePicker(store: store).frame(width: 180)
-            }
-            Divider().overlay(palette.primary)
-            HStack(alignment: .top, spacing: 18) {
-                ThemeArtView(
-                    theme: theme,
-                    status: store.activeStatus ?? .worried,
-                    animate: store.preferences.themeAnimation
-                )
-                .frame(width: 170, height: 170)
-                if let profile = store.activeProfile {
-                    ScrollView { StatusDetailView(store: store, profile: profile) }
-                }
-            }
-            Divider().overlay(palette.primary)
-            MenuActions(store: store)
-        }
-        .padding(18)
-        .frame(width: 540, height: 390)
-        .background(palette.background)
-        .foregroundStyle(palette.text)
-        .tint(palette.primary)
-        .font(.system(size: 12, design: .monospaced))
-        .shadow(color: palette.primary.opacity(0.25), radius: 8)
     }
 }
 

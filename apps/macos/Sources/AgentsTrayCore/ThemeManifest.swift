@@ -62,7 +62,6 @@ public struct ThemeFrameAnimation: Codable, Equatable, Sendable {
 public enum MacThemeLayout: String, Codable, CaseIterable, Sendable {
     case classic
     case pipboy2000 = "pipboy-2000"
-    case pipboy3000 = "pipboy-3000"
 }
 
 public struct MacThemeTypography: Codable, Equatable, Sendable {

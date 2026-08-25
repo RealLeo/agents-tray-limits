@@ -11,6 +11,15 @@ The project uses the integer version in `metadata.json`; Git release tags use th
 - Added the built-in Night Video Deck theme: a 680×520 VCR/CRT GNOME layout with one gray tabby across four resource states, localized hardware controls, subtle CRT motion, and a Classic fallback on macOS.
 - Extended theme manifest v2 with the GNOME `video-deck` layout.
 
+### Removed
+
+- Removed the built-in Fallout 3 theme and its raster artwork from GNOME and macOS.
+- Removed the macOS `pipboy-3000` theme layout from manifest v2; supported macOS layouts are now `classic` and `pipboy-2000`.
+
+### Compatibility
+
+- Existing `fallout-3` and `pipboy-classic` theme settings now migrate to `fallout-2`.
+
 ## [18] - 2026-08-25
 
 ### Changed

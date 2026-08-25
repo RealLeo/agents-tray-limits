@@ -161,7 +161,8 @@ assertEqual(formatPanelDuration(300, en), '5h', 'hour duration');
 assertEqual(formatPanelDuration(30, en), '30m', 'minute duration');
 assertEqual(formatPanelValue({rateLimits: {rateLimits: {limitId: 'codex'}}}), null,
     'missing primary must keep diagnostic panel state');
-assertEqual(migrateThemeId('pipboy-classic'), 'fallout-3', 'legacy theme migration');
+assertEqual(migrateThemeId('fallout-3'), 'fallout-2', 'removed theme migration');
+assertEqual(migrateThemeId('pipboy-classic'), 'fallout-2', 'legacy theme migration');
 assertEqual(migrateThemeId('fallout-2'), 'fallout-2', 'current theme must not migrate');
 assertEqual(migrateThemeId('classic'), 'classic', 'Classic must not migrate');
 
@@ -251,6 +252,13 @@ assert(!validateThemeManifest({
         gnome: {stylesheet: 'theme.css', layout: 'unknown'},
     },
 }, 'test_theme').ok, 'unknown GNOME v2 layout accepted');
+assert(!validateThemeManifest({
+    ...videoDeckManifest,
+    platforms: {
+        ...videoDeckManifest.platforms,
+        macos: {...videoDeckManifest.platforms.macos, layout: 'pipboy-3000'},
+    },
+}, 'test_theme').ok, 'removed macOS Pip-Boy 3000 layout accepted');
 assert(!validateThemeManifest({
     ...videoDeckManifest,
     platforms: {...videoDeckManifest.platforms, windows: {}},
@@ -375,7 +383,7 @@ assertEqual(resolveTheme(catalog, 'missing'), classic, 'missing theme must fall 
 
 const realCatalog = loadThemeCatalog(GLib.get_current_dir(), '/nonexistent/theme-test-root');
 assert(realCatalog.has('fallout-2'), 'built-in Fallout 2 theme was not discovered');
-assert(realCatalog.has('fallout-3'), 'built-in Fallout 3 theme was not discovered');
+assert(!realCatalog.has('fallout-3'), 'removed Fallout 3 theme was discovered');
 assert(realCatalog.has('night-video-deck'), 'built-in Night Video Deck theme was not discovered');
 assert(!realCatalog.has('pipboy-classic'), 'legacy Pip-Boy theme must not be listed');
 assertEqual(realCatalog.get('fallout-2').layout, 'pipboy-2000', 'Fallout 2 layout');
@@ -391,12 +399,6 @@ assertEqual(realCatalog.get('fallout-2').frameAnimationPaths.dead.length, 1,
 assertEqual(realCatalog.get('fallout-2').source, 'built-in', 'Fallout 2 source');
 assert(realCatalog.get('fallout-2').panelArtPaths.good.endsWith('/assets/panel/good.png'),
     'Fallout 2 panel art was not loaded');
-assertEqual(realCatalog.get('fallout-3').panelArtPaths.good,
-    realCatalog.get('fallout-3').artPaths.good, 'panelArt must fall back to art');
-assertEqual(realCatalog.get('fallout-3').animation.steps.length, 8,
-    'Fallout 3 transform animation changed');
-assertEqual(realCatalog.get('fallout-3').frameAnimation, null,
-    'Fallout 3 unexpectedly gained frame animation');
 assertEqual(realCatalog.get('night-video-deck').layout, 'video-deck',
     'Night Video Deck GNOME layout');
 assertEqual(realCatalog.get('night-video-deck').animation.intervalMs, 900,

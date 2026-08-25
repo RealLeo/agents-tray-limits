@@ -195,7 +195,7 @@ final class CoreTests: XCTestCase {
 
     func testBuiltInThemeV2Validation() throws {
         let root = repositoryRoot.appendingPathComponent("shared/themes")
-        for id in ["fallout-2", "fallout-3", "night-video-deck"] {
+        for id in ["fallout-2", "night-video-deck"] {
             let directory = root.appendingPathComponent(id)
             let manifest = try JSONDecoder().decode(
                 ThemeManifest.self,
@@ -211,6 +211,21 @@ final class CoreTests: XCTestCase {
         }
     }
 
+    func testRemovedPipBoy3000LayoutIsRejected() throws {
+        let path = repositoryRoot.appendingPathComponent("shared/themes/fallout-2/theme.json")
+        var manifest = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: Data(contentsOf: path)) as? [String: Any]
+        )
+        var platforms = try XCTUnwrap(manifest["platforms"] as? [String: Any])
+        var macOS = try XCTUnwrap(platforms["macos"] as? [String: Any])
+        macOS["layout"] = "pipboy-3000"
+        platforms["macos"] = macOS
+        manifest["platforms"] = platforms
+
+        let data = try JSONSerialization.data(withJSONObject: manifest)
+        XCTAssertThrowsError(try JSONDecoder().decode(ThemeManifest.self, from: data))
+    }
+
     func testThemeV1FallsBackToClassicAndRejectsSymlinks() throws {
         let root = try temporaryDirectory().appendingPathComponent("legacy-theme")
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
@@ -220,7 +235,7 @@ final class CoreTests: XCTestCase {
         }
         var manifest = try JSONDecoder().decode(
             ThemeManifest.self,
-            from: Data(contentsOf: repositoryRoot.appendingPathComponent("shared/themes/fallout-3/theme.json"))
+            from: Data(contentsOf: repositoryRoot.appendingPathComponent("shared/themes/fallout-2/theme.json"))
         )
         manifest.version = 1
         manifest.id = "legacy-theme"

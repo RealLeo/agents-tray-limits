@@ -394,7 +394,6 @@ struct ThemeSettingsView: View {
     private func themeName(_ theme: LoadedTheme) -> String {
         switch theme.id {
         case "fallout-2": return store.localizer.text("themes.fallout2.name")
-        case "fallout-3": return store.localizer.text("themes.fallout3.name")
         default: return theme.manifest.name
         }
     }

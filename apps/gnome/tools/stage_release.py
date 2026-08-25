@@ -193,7 +193,6 @@ def verify(archive: Path) -> None:
             "bin/agents-tray-limits-helper.py",
             "icons/agents-tray-limits-symbolic.svg",
             "themes/fallout-2/theme.json",
-            "themes/fallout-3/theme.json",
             "themes/night-video-deck/theme.json",
             "themes/night-video-deck/theme.css",
             "themes/night-video-deck/assets/ui/device-shell.png",

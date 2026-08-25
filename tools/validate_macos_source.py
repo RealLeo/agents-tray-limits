@@ -25,6 +25,13 @@ def require(relative: str, *needles: str) -> None:
         raise ValueError(f"{relative}: missing required implementation markers: {missing}")
 
 
+def forbid(relative: str, *needles: str) -> None:
+    source = text(relative)
+    present = [needle for needle in needles if needle in source]
+    if present:
+        raise ValueError(f"{relative}: contains removed implementation markers: {present}")
+
+
 def main() -> int:
     with (MACOS / "Info.plist").open("rb") as stream:
         info = plistlib.load(stream)
@@ -39,8 +46,17 @@ def main() -> int:
 
     require("Package.swift", ".macOS(.v13)", "AgentsTrayCore", "AgentsTrayCollector", "AgentsTrayMacApp")
     require("Sources/AgentsTrayMacApp/AgentsTrayLimitsApp.swift", "MenuBarExtra", "Settings", "panelImage")
-    require("Sources/AgentsTrayMacApp/AppStore.swift", "SMAppService.mainApp", "by: 3", "panelArt", "localizedError")
-    require("Sources/AgentsTrayMacApp/ThemeViews.swift", "accessibilityReduceMotion", "pipboy2000", "pipboy3000")
+    require(
+        "Sources/AgentsTrayMacApp/AppStore.swift",
+        "SMAppService.mainApp",
+        "by: 3",
+        "panelArt",
+        "localizedError",
+        'themes.first(where: { $0.id == "fallout-2" })?.id ?? "classic"',
+    )
+    require("Sources/AgentsTrayMacApp/ThemeViews.swift", "accessibilityReduceMotion", "pipboy2000")
+    forbid("Sources/AgentsTrayCore/ThemeManifest.swift", "pipboy3000", "pipboy-3000")
+    forbid("Sources/AgentsTrayMacApp/ThemeViews.swift", "PipBoy3000", "pipboy3000")
     require(
         "Sources/AgentsTrayCore/CodexProvider.swift",
         "agents_tray_limits_macos",

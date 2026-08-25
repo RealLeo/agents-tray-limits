@@ -49,14 +49,13 @@ profile and switches between them instantly.
 
 - Explicit Codex and Claude Code profiles with isolated configuration directories.
 - A compact panel value such as `65% · reset 4d 22h`, calculated from the selected profile's primary window.
-- A profile summary and instant switching in the Classic, Fallout 3, Pip-Boy, and Night Video Deck interfaces.
+- A profile summary and instant switching in the Classic, Pip-Boy, and Night Video Deck interfaces.
 - Remaining-usage and used-usage display modes.
 - Detailed primary, secondary, and additional rate-limit groups in the menu.
 - Reset countdowns and optional token statistics.
 - Automatic Codex CLI discovery, including NVM, Volta, Bun, pnpm, asdf, and mise installations.
-- Four built-in themes:
+- Three built-in themes:
   - `fallout-2`, the default Pip-Boy 2000-inspired theme with one-shot character animations;
-  - `fallout-3`, a bright green CRT-inspired theme;
   - `night-video-deck`, a dark VCR/CRT console where one gray tabby's condition reflects the remaining limit;
   - `classic`, the native GNOME-style fallback.
 - Declarative user themes without executable theme code.
@@ -355,4 +354,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution rules and [SECURITY.md](
 
 Source code is available under the [MIT License](LICENSE), copyright © 2026 RealLeo.
 
-The MIT License **does not apply** to the Fallout/Pip-Boy/Vault Boy-inspired raster artwork under `shared/themes/fallout-2/assets/`, `shared/themes/fallout-3/assets/`, and `tools/animation-rig/`. Those assets may incorporate third-party intellectual property. No additional rights to that intellectual property are granted by this repository. Read [NOTICE.md](../../NOTICE.md) before copying or redistributing a build that contains the artwork.
+The MIT License **does not apply** to the Fallout/Pip-Boy/Vault Boy-inspired raster artwork under `shared/themes/fallout-2/assets/` and `tools/animation-rig/`. Those assets may incorporate third-party intellectual property. No additional rights to that intellectual property are granted by this repository. Read [NOTICE.md](../../NOTICE.md) before copying or redistributing a build that contains the artwork.

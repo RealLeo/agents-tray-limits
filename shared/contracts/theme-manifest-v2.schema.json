@@ -104,7 +104,7 @@
       "additionalProperties": false,
       "required": ["layout"],
       "properties": {
-        "layout": {"enum": ["classic", "pipboy-2000", "pipboy-3000"]},
+        "layout": {"enum": ["classic", "pipboy-2000"]},
         "palette": {
           "type": "object",
           "additionalProperties": false,

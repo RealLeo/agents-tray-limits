@@ -74,8 +74,11 @@ def validate_locales() -> None:
         raise ValueError("shared locales must contain exactly five supported catalogs")
     english_keys = set(catalogs["en"])
     translation_keys = english_keys - {"_meta"}
-    if len(translation_keys) != 213:
-        raise ValueError(f"English locale must retain the 213-key baseline, found {len(translation_keys)}")
+    if len(translation_keys) != 211:
+        raise ValueError(f"English locale must retain the 211-key baseline, found {len(translation_keys)}")
+    removed_keys = {"themes.fallout3.name", "themes.fallout3.description"}
+    if removed_keys.intersection(translation_keys):
+        raise ValueError("removed Fallout 3 locale keys must not be present")
     for language, catalog in catalogs.items():
         if set(catalog) != english_keys:
             raise ValueError(f"{language}: locale key set differs from English")
@@ -117,7 +120,7 @@ def validate_theme(path: Path) -> None:
                 raise ValueError(f"{path}: unsafe or missing GNOME stylesheet")
         macos = platforms.get("macos")
         if isinstance(macos, dict):
-            if macos.get("layout") not in {"classic", "pipboy-2000", "pipboy-3000"}:
+            if macos.get("layout") not in {"classic", "pipboy-2000"}:
                 raise ValueError(f"{path}: invalid macOS layout")
             palette = macos.get("palette", {})
             if not isinstance(palette, dict) or not all(COLOR.fullmatch(str(value)) for value in palette.values()):

@@ -436,6 +436,11 @@ class NightVideoDeckUiSourceTests(unittest.TestCase):
         self.assertIn("background-color: transparent", focus)
         self.assertIn("border-color: rgba(105, 188, 226, 0.55)", focus)
         self.assertIn("box-shadow: none", focus)
+        active = VIDEO_CSS.split(
+            ".agents-tray-limits-video-deck-button:active {", 1
+        )[1].split("}", 1)[0]
+        self.assertIn("background-color: transparent", active)
+        self.assertIn("border-color: rgba(62, 112, 136, 0.65)", active)
         self.assertIn(".agents-tray-limits-video-deck-button:insensitive", VIDEO_CSS)
         self.assertNotIn(".agents-tray-limits-pipboy-tooltip", VIDEO_CSS)
 

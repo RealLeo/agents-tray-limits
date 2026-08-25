@@ -144,6 +144,7 @@ class ReleaseIdentityTests(unittest.TestCase):
             for status in ("good", "worried", "critical", "dead"):
                 self.assertIn(f"themes/night-video-deck/assets/art/{status}.png", names)
                 self.assertIn(f"themes/night-video-deck/assets/panel/{status}.png", names)
+            self.assertFalse(any(name.startswith("themes/fallout-3/") for name in names))
             self.assertNotIn("README.md", names)
             self.assertFalse(any(name.startswith("tests/") for name in names))
             self.assertFalse(any(name.startswith("tools/") for name in names))

@@ -1,6 +1,7 @@
 export const CLASSIC_THEME_ID = 'classic';
 export const LEGACY_THEME_IDS = {
-    'pipboy-classic': 'fallout-3',
+    'fallout-3': 'fallout-2',
+    'pipboy-classic': 'fallout-2',
 };
 export const THEME_MANIFEST_VERSION = 2;
 export const LEGACY_THEME_MANIFEST_VERSION = 1;
@@ -293,7 +294,7 @@ export function validateThemeManifest(manifest, directoryName = null) {
         if (macos !== undefined) {
             if (!macos || typeof macos !== 'object' || Array.isArray(macos))
                 return {ok: false, error: 'platforms.macos must be an object'};
-            if (!['classic', 'pipboy-2000', 'pipboy-3000'].includes(macos.layout))
+            if (!['classic', 'pipboy-2000'].includes(macos.layout))
                 return {ok: false, error: 'unsupported macOS theme layout'};
             const palette = macos.palette ?? {};
             const paletteKeys = [
