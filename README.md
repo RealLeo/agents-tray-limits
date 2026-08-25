@@ -4,6 +4,10 @@ Agents Tray Limits is a local, privacy-preserving subscription-limit monitor
 for Codex and Claude Code. This repository contains platform applications and
 their shared contracts and visual resources.
 
+![Agents Tray Limits on Ubuntu with the Fallout 2 theme](docs/images/agents-tray-limits-fallout-2.png)
+
+_GNOME Shell interface on Ubuntu — Fallout 2 / Pip-Boy 2000 theme._
+
 ## Platforms
 
 - [GNOME Shell extension](apps/gnome/README.md) — production implementation for
