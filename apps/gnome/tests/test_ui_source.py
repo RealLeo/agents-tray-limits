@@ -17,6 +17,10 @@ ASSETS = SHARED_ROOT / "themes" / "fallout-2" / "assets"
 VIDEO_ROOT = SHARED_ROOT / "themes" / "night-video-deck"
 VIDEO_CSS = (VIDEO_ROOT / "theme.css").read_text(encoding="utf-8")
 VIDEO_ASSETS = VIDEO_ROOT / "assets"
+AMP_ROOT = SHARED_ROOT / "themes" / "agents-amp"
+AMP_CSS = (AMP_ROOT / "theme.css").read_text(encoding="utf-8")
+AMP_ASSETS = AMP_ROOT / "assets" / "status"
+AMP_SOURCE = REPO_ROOT / "tools" / "theme-assets" / "agents-amp"
 
 
 def png_header(path):
@@ -443,6 +447,132 @@ class NightVideoDeckUiSourceTests(unittest.TestCase):
         self.assertIn("border-color: rgba(62, 112, 136, 0.65)", active)
         self.assertIn(".agents-tray-limits-video-deck-button:insensitive", VIDEO_CSS)
         self.assertNotIn(".agents-tray-limits-pipboy-tooltip", VIDEO_CSS)
+
+    def test_agents_amp_fixed_geometry_and_real_widget_layout(self):
+        manifest = json.loads((AMP_ROOT / "theme.json").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["id"], "agents-amp")
+        self.assertEqual(manifest["platforms"]["gnome"]["layout"], "agents-amp")
+        self.assertEqual(manifest["platforms"]["macos"]["layout"], "agents-amp")
+        layout = SOURCE.split("_beginAgentsAmpLayout(status, remaining, mode) {", 1)[1]
+        layout = layout.split("_createAgentsAmpButton(", 1)[0]
+        self.assertIn("width: 680", layout)
+        self.assertIn("height: 520", layout)
+        self.assertIn("[[0, 160], [164, 138], [306, 214]]", layout)
+        self.assertIn("new St.ScrollView", layout)
+        self.assertIn("new St.BoxLayout", layout)
+        self.assertNotIn("background-image", layout)
+        device_rule = AMP_CSS.split(
+            ".agents-tray-limits-theme-agents-amp .agents-tray-limits-agents-amp-device {", 1
+        )[1].split("}", 1)[0]
+        self.assertIn("width: 680px", device_rule)
+        self.assertIn("height: 520px", device_rule)
+
+    def test_agents_amp_actions_and_decorative_transport_contract(self):
+        layout = SOURCE.split("_beginAgentsAmpLayout(status, remaining, mode) {", 1)[1]
+        layout = layout.split("\n    _createAgentsAmpButton(", 1)[0]
+        self.assertIn("const transport =", layout)
+        self.assertIn("['◀◀', '▶', '▮▮', '■', '▶▶', '▲', 'SHUF', 'REP']", layout)
+        self.assertIn("reactive: false", layout)
+        self.assertIn("can_focus: false", SOURCE.split("_addAgentsAmpDecoration", 1)[1])
+        for key in (
+            "agentsAmp.refresh", "agentsAmp.profile", "agentsAmp.settings", "agentsAmp.close"
+        ):
+            self.assertIn(key, layout)
+        for asset_key in ("refresh", "profile", "settings", "close"):
+            self.assertIn(f"'{asset_key}'", layout)
+            self.assertIn(f"agents-tray-limits-agents-amp-button-{asset_key}", AMP_CSS)
+        self.assertIn("providerUrl(activeProvider)", layout)
+        self.assertIn("this.openPreferences()", layout)
+        self.assertIn("this._indicator.menu.close()", layout)
+
+    def test_agents_amp_loading_error_normal_and_animation_lifecycle(self):
+        loading = SOURCE.split("_buildLoadingMenu() {", 1)[1].split("_buildErrorMenu() {", 1)[0]
+        error = SOURCE.split("_buildErrorMenu() {", 1)[1].split("_buildDataMenu() {", 1)[0]
+        data = SOURCE.split("_buildAgentsAmpDataMenu() {", 1)[1].split(
+            "_addAgentsAmpTitle", 1
+        )[0]
+        self.assertIn("_beginAgentsAmpLayout(null, null, 'loading')", loading)
+        self.assertIn("_beginAgentsAmpLayout('dead', 0, 'error')", error)
+        self.assertIn("this._populateAgentsAmpPlaylist('loading')", loading)
+        self.assertIn("this._populateAgentsAmpPlaylist('error', error)", error)
+        for marker in ("this._populateAgentsAmpPlaylist('normal')", "this._syncThemeAnimations()"):
+            self.assertIn(marker, data)
+        self.assertNotIn("this._addProfileSelector()", data)
+        custom_playlist = SOURCE.split("_populateAgentsAmpPlaylist(mode, error = null) {", 1)[1]
+        custom_playlist = custom_playlist.split("_createAgentsAmpButton(", 1)[0]
+        self.assertIn("this._addAgentsAmpProfileRow(profile)", custom_playlist)
+        self.assertIn("this._addAgentsAmpLimitRow(bucket, kind, window)", custom_playlist)
+        self.assertIn("this._addAgentsAmpStatRow", custom_playlist)
+        sync = SOURCE.split("_syncAgentsAmpEqualizerAnimation() {", 1)[1].split(
+            "_endAgentsAmpLayout()", 1
+        )[0]
+        self.assertIn("this._agentsAmpMode !== 'normal'", sync)
+        self.assertIn("this._agentsAmpBars?.length !== 28", sync)
+        self.assertIn("menu?.isOpen", sync)
+        self.assertIn("get_boolean('theme-animation')", sync)
+        self.assertIn("get_boolean('enable-animations')", sync)
+        self.assertIn("start(120, 28)", sync)
+        self.assertGreaterEqual(SOURCE.count("this._stopAgentsAmpEqualizerAnimation()"), 4)
+
+    def test_agents_amp_status_assets_and_css(self):
+        manifest = json.loads((AMP_ROOT / "theme.json").read_text(encoding="utf-8"))
+        self.assertNotIn("winamp", json.dumps(manifest).lower())
+        for status in ("good", "worried", "critical", "dead"):
+            self.assertEqual(manifest["art"][status], f"assets/status/{status}.png")
+            self.assertEqual(png_header(AMP_ASSETS / f"{status}.png"), (128, 128, 6))
+        self.assertEqual(len(list(AMP_SOURCE.glob("monitor*.xpm"))), 4)
+        self.assertIn("MIT License", (AMP_SOURCE / "README.md").read_text(encoding="utf-8"))
+        self.assertIn("MIT License", (AMP_SOURCE / "LICENSE").read_text(encoding="utf-8"))
+        ui_root = AMP_ROOT / "assets" / "ui"
+        expected_ui = {
+            "chrome-shell-v2.png": (1360, 1040, 6),
+            "button-refresh-idle-v1.png": (280, 62, 6),
+            "button-refresh-pressed-v1.png": (280, 62, 6),
+            "button-profile-idle-v1.png": (248, 62, 6),
+            "button-profile-pressed-v1.png": (248, 62, 6),
+            "button-settings-idle-v1.png": (420, 62, 6),
+            "button-settings-pressed-v1.png": (420, 62, 6),
+            "button-close-idle-v1.png": (324, 62, 6),
+            "button-close-pressed-v1.png": (324, 62, 6),
+        }
+        for filename, expected in expected_ui.items():
+            self.assertEqual(png_header(ui_root / filename), expected)
+        chrome_source = (AMP_SOURCE / "chrome-shell.svg").read_text(encoding="utf-8")
+        self.assertNotIn("Winamp", chrome_source)
+        provenance = (AMP_SOURCE / "IMAGEGEN.md").read_text(encoding="utf-8")
+        self.assertIn("Variant A", provenance)
+        self.assertIn("style reference only", provenance)
+        self.assertEqual(
+            png_header(AMP_SOURCE / "imagegen" / "device-shell-master-v1.png"),
+            (1360, 1040, 6),
+        )
+        for marker in (
+            "agents-tray-limits-agents-amp-spectrum-cell",
+            "agents-tray-limits-agents-amp-spectrum-cell.peak",
+            "assets/ui/chrome-shell-v2.png",
+            "assets/ui/button-refresh-idle-v1.png",
+            "assets/ui/button-close-pressed-v1.png",
+            "agents-tray-limits-status-worried",
+            "agents-tray-limits-status-critical",
+            "agents-tray-limits-status-dead",
+        ):
+            self.assertIn(marker, AMP_CSS)
+
+    def test_agents_amp_segmented_equalizer_sliders_and_reset_counters(self):
+        layout = SOURCE.split("_beginAgentsAmpLayout(status, remaining, mode) {", 1)[1]
+        layout = layout.split("_createAgentsAmpButton(", 1)[0]
+        self.assertIn("for (let index = 0; index < 28; index++)", layout)
+        self.assertIn("for (let level = 1; level <= 12; level++)", layout)
+        self.assertIn("this._agentsAmpBars.push({cells})", layout)
+        self.assertIn("'PRE', '60', '170', '310', '600', '1K', '3K', '6K', '12K', '16K'", layout)
+        self.assertIn("const counters = this._agentsAmpResetCounters", layout)
+        self.assertIn("x: 584", layout)
+        self.assertIn("width: 82", layout)
+        frame = SOURCE.split("_applyAgentsAmpEqualizerFrame(levels, peaks) {", 1)[1]
+        frame = frame.split("_stopAgentsAmpEqualizerAnimation()", 1)[0]
+        self.assertIn("actors.cells.forEach", frame)
+        self.assertIn("this._agentsAmpMode === 'error'", frame)
+        self.assertNotIn("set_height", frame)
 
 
 if __name__ == "__main__":

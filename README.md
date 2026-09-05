@@ -24,6 +24,12 @@ shared/       JSON contracts, golden fixtures, locales, and theme resources
 tools/        Shared artwork and validation tools
 ```
 
+The shared catalog includes the cross-platform `agents-amp` layout: an
+original three-panel media-player theme implemented with native GNOME and
+SwiftUI widgets rather than a baked background screenshot. Its empty HiDPI
+chrome shell contains only metal, dithering, bevels, and fasteners; LCD text,
+segmented meters, table rows, scrolling, and controls remain live.
+
 ## Common commands
 
 ```bash

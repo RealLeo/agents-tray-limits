@@ -238,6 +238,10 @@ final class AppStore: ObservableObject {
         NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
     }
 
+    func closeMenu() {
+        NSApp.keyWindow?.orderOut(nil)
+    }
+
     func quit() { NSApp.terminate(nil) }
 
     private func reloadLocalizer() {

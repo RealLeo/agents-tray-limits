@@ -207,6 +207,7 @@ function localizeBuiltInTheme(theme, i18n) {
     const key = {
         'fallout-2': 'fallout2',
         'night-video-deck': 'nightVideoDeck',
+        'agents-amp': 'agentsAmp',
     }[theme.id];
     if (!key)
         return theme;

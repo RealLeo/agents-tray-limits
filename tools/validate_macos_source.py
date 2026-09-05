@@ -54,7 +54,37 @@ def main() -> int:
         "localizedError",
         'themes.first(where: { $0.id == "fallout-2" })?.id ?? "classic"',
     )
-    require("Sources/AgentsTrayMacApp/ThemeViews.swift", "accessibilityReduceMotion", "pipboy2000")
+    require(
+        "Sources/AgentsTrayMacApp/ThemeViews.swift",
+        "accessibilityReduceMotion",
+        "pipboy2000",
+        "AgentsAmpView",
+        "AgentsAmpModule",
+        "AgentsAmpLimitRow",
+        "AgentsAmpSevenSegmentNumber",
+        "ForEach((1...12).reversed()",
+        'ForEach(["PRE", "60", "170", "310", "600", "1K", "3K", "6K", "12K", "16K"]',
+        'assets/ui/chrome-shell-v2.png',
+        r'assets/ui/button-\(assetKey)-\(state)-v1.png',
+        "AgentsAmpRasterButtonStyle",
+        "resetCounters",
+        "Array(repeating: 2, count: 28)",
+        "120_000_000",
+        "store.preferences.themeAnimation",
+        "store.closeMenu()",
+    )
+    require("Sources/AgentsTrayCore/ThemeManifest.swift", 'case agentsAmp = "agents-amp"')
+    require("Sources/AgentsTrayMacApp/AppStore.swift", "func closeMenu()", "orderOut(nil)")
+    theme_views = text("Sources/AgentsTrayMacApp/ThemeViews.swift")
+    agents_amp = theme_views.split("struct AgentsAmpView: View {", 1)[1].split(
+        "private struct ThemePalette", 1
+    )[0]
+    for forbidden in ("Picker(", "ProgressView(", "store.quit()"):
+        if forbidden in agents_amp:
+            raise ValueError(f"AgentsAmpView must use custom controls: found {forbidden}")
+    for forbidden in ("AgentsAmpDither().opacity", ".agentsAmpInsetBorder"):
+        if forbidden in agents_amp:
+            raise ValueError(f"AgentsAmpView must leave raster chrome unobstructed: found {forbidden}")
     forbid("Sources/AgentsTrayCore/ThemeManifest.swift", "pipboy3000", "pipboy-3000")
     forbid("Sources/AgentsTrayMacApp/ThemeViews.swift", "PipBoy3000", "pipboy3000")
     require(

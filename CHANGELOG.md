@@ -8,13 +8,22 @@ The project uses the integer version in `metadata.json`; Git release tags use th
 
 ### Added
 
+- Added the cross-platform `agents-amp` theme: an original 680×520 late-1990s media-player layout with player, equalizer, and playlist panels, localized controls, and four MIT-licensed pixel-art monitor states.
+- Added a 28-band, 12-level Agents Amp equalizer that updates every 120 ms, smooths randomized targets, retains decaying peak markers, and respects theme/system animation preferences and Reduce Motion.
+- Extended theme manifest v2 with the `agents-amp` layout on GNOME and macOS.
 - Added the built-in Night Video Deck theme: a 680×520 VCR/CRT GNOME layout with one gray tabby across four resource states, localized hardware controls, subtle CRT motion, and a Classic fallback on macOS.
 - Extended theme manifest v2 with the GNOME `video-deck` layout.
+
+### Changed
+
+- Replaced the flat Agents Amp chrome with an original image-generated navy/graphite HiDPI shell and exact idle/pressed raster button sprites while keeping all data, labels, animation, focus, and actions live on both platforms.
+- Reworked Agents Amp around an original HiDPI metal chrome shell, live seven-segment LCD digits, a 28×12 segmented spectrum, ten EQ sliders, split reset counters, and a compact table playlist on GNOME and macOS.
+- Agents Amp now uses dedicated normal/loading/error playlist builders while retaining profile selection, remaining/used scales, token statistics, and all four bottom actions.
 
 ### Removed
 
 - Removed the built-in Fallout 3 theme and its raster artwork from GNOME and macOS.
-- Removed the macOS `pipboy-3000` theme layout from manifest v2; supported macOS layouts are now `classic` and `pipboy-2000`.
+- Removed the macOS `pipboy-3000` theme layout from manifest v2; supported macOS layouts are now `classic`, `pipboy-2000`, and `agents-amp`.
 
 ### Compatibility
 

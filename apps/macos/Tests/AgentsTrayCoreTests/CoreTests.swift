@@ -189,13 +189,15 @@ final class CoreTests: XCTestCase {
             XCTAssertNotEqual(localizer.text("actions.refresh"), "actions.refresh", language.rawValue)
             XCTAssertNotEqual(localizer.text("profiles.error"), "profiles.error", language.rawValue)
             XCTAssertNotEqual(localizer.text("videoDeck.offline"), "videoDeck.offline", language.rawValue)
+            XCTAssertNotEqual(localizer.text("agentsAmp.equalizer"), "agentsAmp.equalizer", language.rawValue)
+            XCTAssertNotEqual(localizer.text("agentsAmp.columnWindow"), "agentsAmp.columnWindow", language.rawValue)
             XCTAssertFalse(localizer.plural("time.minute", count: 2).contains("{count}"), language.rawValue)
         }
     }
 
     func testBuiltInThemeV2Validation() throws {
         let root = repositoryRoot.appendingPathComponent("shared/themes")
-        for id in ["fallout-2", "night-video-deck"] {
+        for id in ["fallout-2", "night-video-deck", "agents-amp"] {
             let directory = root.appendingPathComponent(id)
             let manifest = try JSONDecoder().decode(
                 ThemeManifest.self,
@@ -207,6 +209,21 @@ final class CoreTests: XCTestCase {
                 XCTAssertEqual(manifest.macDefinition.layout, .classic)
                 XCTAssertEqual(manifest.animation?.intervalMs, 900)
                 XCTAssertEqual(manifest.macDefinition.typography?.family, "monospaced")
+            } else if id == "agents-amp" {
+                XCTAssertEqual(manifest.macDefinition.layout, .agentsAmp)
+                XCTAssertEqual(manifest.platforms?.gnome?.layout, "agents-amp")
+                XCTAssertEqual(manifest.panelArt?.good, "assets/status/good.png")
+                for asset in [
+                    "chrome-shell-v2.png",
+                    "button-refresh-idle-v1.png", "button-refresh-pressed-v1.png",
+                    "button-profile-idle-v1.png", "button-profile-pressed-v1.png",
+                    "button-settings-idle-v1.png", "button-settings-pressed-v1.png",
+                    "button-close-idle-v1.png", "button-close-pressed-v1.png",
+                ] {
+                    XCTAssertTrue(FileManager.default.fileExists(
+                        atPath: directory.appendingPathComponent("assets/ui/\(asset)").path
+                    ), asset)
+                }
             }
         }
     }

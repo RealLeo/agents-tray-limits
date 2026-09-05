@@ -5,6 +5,7 @@ import {createTranslator} from '../i18n.js';
 
 import {
     AnimationLoop,
+    EqualizerAnimationLoop,
     FrameAnimationLoop,
     FrameAnimationSession,
     RepeatingTimer,
@@ -15,6 +16,7 @@ import {
     formatPanelValue,
     migrateThemeId,
     mergeThemeLists,
+    nextEqualizerFrame,
     primaryCodexRemaining,
     statusForRemaining,
     validateThemeManifest,
@@ -245,6 +247,20 @@ assert(videoDeckResult.ok, 'valid video-deck v2 manifest rejected');
 assertEqual(videoDeckResult.manifest.layout, 'video-deck', 'video-deck layout was not normalized');
 assertEqual(videoDeckResult.manifest.platforms.macos.layout, 'classic',
     'video-deck macOS fallback was not preserved');
+const agentsAmpResult = validateThemeManifest({
+    ...videoDeckManifest,
+    platforms: {
+        gnome: {stylesheet: 'theme.css', layout: 'agents-amp'},
+        macos: {
+            ...videoDeckManifest.platforms.macos,
+            layout: 'agents-amp',
+        },
+    },
+}, 'test_theme');
+assert(agentsAmpResult.ok, 'valid agents-amp v2 manifest rejected');
+assertEqual(agentsAmpResult.manifest.layout, 'agents-amp', 'Agents Amp GNOME layout');
+assertEqual(agentsAmpResult.manifest.platforms.macos.layout, 'agents-amp',
+    'Agents Amp macOS layout');
 assert(!validateThemeManifest({
     ...videoDeckManifest,
     platforms: {
@@ -385,6 +401,7 @@ const realCatalog = loadThemeCatalog(GLib.get_current_dir(), '/nonexistent/theme
 assert(realCatalog.has('fallout-2'), 'built-in Fallout 2 theme was not discovered');
 assert(!realCatalog.has('fallout-3'), 'removed Fallout 3 theme was discovered');
 assert(realCatalog.has('night-video-deck'), 'built-in Night Video Deck theme was not discovered');
+assert(realCatalog.has('agents-amp'), 'built-in Agents Amp theme was not discovered');
 assert(!realCatalog.has('pipboy-classic'), 'legacy Pip-Boy theme must not be listed');
 assertEqual(realCatalog.get('fallout-2').layout, 'pipboy-2000', 'Fallout 2 layout');
 assertEqual(realCatalog.get('fallout-2').animation, null,
@@ -407,6 +424,11 @@ assertEqual(realCatalog.get('night-video-deck').platforms.macos.layout, 'classic
     'Night Video Deck macOS fallback');
 assert(realCatalog.get('night-video-deck').panelArtPaths.dead.endsWith('/assets/panel/dead.png'),
     'Night Video Deck panel art was not loaded');
+assertEqual(realCatalog.get('agents-amp').layout, 'agents-amp', 'Agents Amp GNOME layout');
+assertEqual(realCatalog.get('agents-amp').platforms.macos.layout, 'agents-amp',
+    'Agents Amp macOS layout');
+assert(realCatalog.get('agents-amp').panelArtPaths.good.endsWith('/assets/status/good.png'),
+    'Agents Amp status art was not loaded');
 const localizedCatalog = loadThemeCatalog(
     GLib.get_current_dir(), '/nonexistent/theme-test-root', ru
 );
@@ -414,6 +436,10 @@ assertEqual(localizedCatalog.get('night-video-deck').name, 'Night Video Deck',
     'Night Video Deck localized name');
 assert(localizedCatalog.get('night-video-deck').description.includes('одним серым табби'),
     'Night Video Deck localized description');
+assertEqual(localizedCatalog.get('agents-amp').name, 'Agents Amp',
+    'Agents Amp localized name');
+assert(localizedCatalog.get('agents-amp').description.includes('медиаплеера'),
+    'Agents Amp localized description');
 
 function writeTheme(root, id, options = {}) {
     const themePath = GLib.build_filenamev([root, id]);
@@ -558,6 +584,58 @@ animation.stop();
 assertEqual(appliedSteps.join(','), '0,1', 'animation did not advance');
 assertEqual(cancelled, 1, 'animation source was not cancelled');
 assert(!animation.running, 'animation did not stop');
+
+const smoothed = nextEqualizerFrame([1, 12], [1, 12], (() => {
+    const values = [0.999999, 0.999999, 0, 0];
+    return () => values.shift();
+})());
+assertEqual(smoothed.levels.join(','), '4,10', 'equalizer rise/fall smoothing');
+assertEqual(smoothed.peaks.join(','), '4,11', 'equalizer peak decay');
+let seed = 7;
+let rangeLevels = Array.from({length: 28}, () => 6);
+let rangePeaks = [...rangeLevels];
+for (let frame = 0; frame < 200; frame++) {
+    const next = nextEqualizerFrame(rangeLevels, rangePeaks, () => {
+        seed = (seed * 48271) % 0x7fffffff;
+        return seed / 0x7fffffff;
+    });
+    assert(next.levels.every(level => level >= 1 && level <= 12),
+        'equalizer level escaped 1..12');
+    assert(next.peaks.every(peak => peak >= 1 && peak <= 12),
+        'equalizer peak escaped 1..12');
+    rangeLevels = next.levels;
+    rangePeaks = next.peaks;
+}
+
+let equalizerCallback = null;
+let equalizerScheduled = 0;
+let equalizerCancelled = 0;
+const equalizerFrames = [];
+const equalizer = new EqualizerAnimationLoop(
+    (interval, callback) => {
+        assertEqual(interval, 120, 'equalizer interval');
+        equalizerScheduled++;
+        equalizerCallback = callback;
+        return 126;
+    },
+    sourceId => {
+        assertEqual(sourceId, 126, 'equalizer source id');
+        equalizerCancelled++;
+    },
+    (levels, peaks) => equalizerFrames.push([levels, peaks]),
+    () => 0.5
+);
+equalizer.start(120, 28);
+assert(equalizer.running, 'equalizer did not start');
+assertEqual(equalizerScheduled, 1, 'equalizer scheduled more than one timer');
+assertEqual(equalizerFrames[0][0].length, 28, 'equalizer bar count');
+assertEqual(equalizerCallback(), true, 'equalizer callback must repeat');
+equalizer.start(120, 28);
+assertEqual(equalizerScheduled, 2, 'equalizer restart did not replace timer');
+assertEqual(equalizerCancelled, 1, 'equalizer restart did not cancel prior timer');
+equalizer.stop();
+assertEqual(equalizerCancelled, 2, 'equalizer stop did not cancel timer');
+assert(!equalizer.running, 'equalizer still running after stop');
 
 let frameTimerCallback = null;
 let frameCancelled = 0;

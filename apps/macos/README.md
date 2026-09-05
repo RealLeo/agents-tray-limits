@@ -44,6 +44,13 @@ Theme Manifest v2 uses common `art`, `panelArt`, and animation fields plus a
 typed `platforms.macos` block. GNOME CSS is not executed. Version 1 themes use
 the safe Classic layout while retaining valid raster art and animation.
 
+Supported macOS layouts are `classic`, `pipboy-2000`, and `agents-amp`.
+`agents-amp` provides the same 680×520 player/equalizer/playlist geometry as
+GNOME, using native custom SwiftUI panels. Its equalizer runs only while the
+menu view is active, the shared theme-animation preference is enabled, and
+Reduce Motion is off. Closing the theme hides the `MenuBarExtra` window and
+does not terminate the application.
+
 ## Release
 
 The direct release is a universal, hardened-runtime, Developer ID signed and

@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="1040" viewBox="0 0 1360 1040">
+  <defs>
+    <linearGradient id="face" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#242a4a"/>
+      <stop offset="0.34" stop-color="#141a36"/>
+      <stop offset="1" stop-color="#0a0e22"/>
+    </linearGradient>
+    <linearGradient id="title" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#313858"/>
+      <stop offset="0.48" stop-color="#151a34"/>
+      <stop offset="1" stop-color="#080b1c"/>
+    </linearGradient>
+    <pattern id="dither" width="4" height="4" patternUnits="userSpaceOnUse">
+      <rect width="4" height="4" fill="none"/>
+      <rect width="2" height="2" fill="#ffffff" opacity="0.035"/>
+      <rect x="2" y="2" width="2" height="2" fill="#000000" opacity="0.11"/>
+    </pattern>
+    <pattern id="rivet" width="12" height="8" patternUnits="userSpaceOnUse">
+      <rect width="12" height="8" fill="none"/>
+      <rect x="2" y="2" width="2" height="2" fill="#8992ad" opacity="0.36"/>
+      <rect x="4" y="4" width="2" height="2" fill="#03040b" opacity="0.65"/>
+    </pattern>
+  </defs>
+
+  <rect width="1360" height="1040" fill="#03050d"/>
+
+  <!-- Three empty hardware modules. All text and data remain live widgets. -->
+  <g id="player">
+    <rect x="1" y="1" width="1358" height="318" fill="url(#face)" stroke="#080a14" stroke-width="2"/>
+    <rect x="3" y="3" width="1354" height="314" fill="none" stroke="#9aa3bf" stroke-width="2"/>
+    <rect x="7" y="7" width="1346" height="306" fill="none" stroke="#303958" stroke-width="2"/>
+    <rect x="11" y="11" width="1338" height="298" fill="none" stroke="#050711" stroke-width="2"/>
+    <rect x="13" y="13" width="1334" height="294" fill="url(#dither)"/>
+    <rect x="13" y="13" width="1334" height="34" fill="url(#title)"/>
+    <rect x="13" y="48" width="1334" height="2" fill="#050711"/>
+    <rect x="13" y="51" width="1334" height="2" fill="#69738f" opacity="0.7"/>
+  </g>
+
+  <g id="equalizer">
+    <rect x="1" y="329" width="1358" height="274" fill="url(#face)" stroke="#080a14" stroke-width="2"/>
+    <rect x="3" y="331" width="1354" height="270" fill="none" stroke="#9aa3bf" stroke-width="2"/>
+    <rect x="7" y="335" width="1346" height="262" fill="none" stroke="#303958" stroke-width="2"/>
+    <rect x="11" y="339" width="1338" height="254" fill="none" stroke="#050711" stroke-width="2"/>
+    <rect x="13" y="341" width="1334" height="250" fill="url(#dither)"/>
+    <rect x="13" y="341" width="1334" height="34" fill="url(#title)"/>
+    <rect x="13" y="376" width="1334" height="2" fill="#050711"/>
+    <rect x="13" y="379" width="1334" height="2" fill="#69738f" opacity="0.7"/>
+  </g>
+
+  <g id="playlist">
+    <rect x="1" y="613" width="1358" height="426" fill="url(#face)" stroke="#080a14" stroke-width="2"/>
+    <rect x="3" y="615" width="1354" height="422" fill="none" stroke="#9aa3bf" stroke-width="2"/>
+    <rect x="7" y="619" width="1346" height="414" fill="none" stroke="#303958" stroke-width="2"/>
+    <rect x="11" y="623" width="1338" height="406" fill="none" stroke="#050711" stroke-width="2"/>
+    <rect x="13" y="625" width="1334" height="402" fill="url(#dither)"/>
+    <rect x="13" y="625" width="1334" height="34" fill="url(#title)"/>
+    <rect x="13" y="660" width="1334" height="2" fill="#050711"/>
+    <rect x="13" y="663" width="1334" height="2" fill="#69738f" opacity="0.7"/>
+  </g>
+
+  <!-- Pixel-scale embossing and corner fasteners. -->
+  <g fill="url(#rivet)" opacity="0.55">
+    <rect x="16" y="56" width="8" height="246"/>
+    <rect x="1336" y="56" width="8" height="246"/>
+    <rect x="16" y="386" width="8" height="194"/>
+    <rect x="1336" y="386" width="8" height="194"/>
+    <rect x="16" y="670" width="8" height="342"/>
+    <rect x="1336" y="670" width="8" height="342"/>
+  </g>
+  <g fill="#aab2c9" stroke="#050711" stroke-width="2">
+    <rect x="16" y="16" width="6" height="6"/><rect x="1338" y="16" width="6" height="6"/>
+    <rect x="16" y="294" width="6" height="6"/><rect x="1338" y="294" width="6" height="6"/>
+    <rect x="16" y="344" width="6" height="6"/><rect x="1338" y="344" width="6" height="6"/>
+    <rect x="16" y="574" width="6" height="6"/><rect x="1338" y="574" width="6" height="6"/>
+    <rect x="16" y="628" width="6" height="6"/><rect x="1338" y="628" width="6" height="6"/>
+    <rect x="16" y="1012" width="6" height="6"/><rect x="1338" y="1012" width="6" height="6"/>
+  </g>
+</svg>

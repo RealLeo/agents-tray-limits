@@ -204,6 +204,21 @@ def verify(archive: Path) -> None:
             "themes/night-video-deck/assets/panel/worried.png",
             "themes/night-video-deck/assets/panel/critical.png",
             "themes/night-video-deck/assets/panel/dead.png",
+            "themes/agents-amp/theme.json",
+            "themes/agents-amp/theme.css",
+            "themes/agents-amp/assets/status/good.png",
+            "themes/agents-amp/assets/status/worried.png",
+            "themes/agents-amp/assets/status/critical.png",
+            "themes/agents-amp/assets/status/dead.png",
+            "themes/agents-amp/assets/ui/chrome-shell-v2.png",
+            "themes/agents-amp/assets/ui/button-refresh-idle-v1.png",
+            "themes/agents-amp/assets/ui/button-refresh-pressed-v1.png",
+            "themes/agents-amp/assets/ui/button-profile-idle-v1.png",
+            "themes/agents-amp/assets/ui/button-profile-pressed-v1.png",
+            "themes/agents-amp/assets/ui/button-settings-idle-v1.png",
+            "themes/agents-amp/assets/ui/button-settings-pressed-v1.png",
+            "themes/agents-amp/assets/ui/button-close-idle-v1.png",
+            "themes/agents-amp/assets/ui/button-close-pressed-v1.png",
         }
         missing = required.difference(names)
         if missing:

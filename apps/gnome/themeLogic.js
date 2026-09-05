@@ -294,7 +294,7 @@ export function validateThemeManifest(manifest, directoryName = null) {
         if (macos !== undefined) {
             if (!macos || typeof macos !== 'object' || Array.isArray(macos))
                 return {ok: false, error: 'platforms.macos must be an object'};
-            if (!['classic', 'pipboy-2000'].includes(macos.layout))
+            if (!['classic', 'pipboy-2000', 'agents-amp'].includes(macos.layout))
                 return {ok: false, error: 'unsupported macOS theme layout'};
             const palette = macos.palette ?? {};
             const paletteKeys = [
@@ -363,7 +363,7 @@ export function validateThemeManifest(manifest, directoryName = null) {
     if (animationResult.animation && frameAnimationResult.frameAnimation)
         return {ok: false, error: 'animation and frameAnimation are mutually exclusive'};
 
-    if (layout !== null && !['pipboy-2000', 'video-deck'].includes(layout))
+    if (layout !== null && !['pipboy-2000', 'video-deck', 'agents-amp'].includes(layout))
         return {ok: false, error: 'unsupported theme layout'};
 
     return {
@@ -462,6 +462,78 @@ export class AnimationLoop {
         this._sourceId = 0;
         this._steps = [];
         this._index = 0;
+    }
+
+    get running() {
+        return this._sourceId !== 0;
+    }
+}
+
+function clampEqualizerLevel(value) {
+    const number = Number(value);
+    if (!Number.isFinite(number))
+        return 1;
+    return Math.max(1, Math.min(12, Math.round(number)));
+}
+
+export function nextEqualizerFrame(levels, peaks, random = Math.random) {
+    const sourceLevels = Array.isArray(levels) ? levels : [];
+    const sourcePeaks = Array.isArray(peaks) ? peaks : [];
+    const nextLevels = [];
+    const nextPeaks = [];
+
+    for (let index = 0; index < sourceLevels.length; index++) {
+        const current = clampEqualizerLevel(sourceLevels[index]);
+        const first = Math.max(0, Math.min(0.999999, Number(random()) || 0));
+        const second = Math.max(0, Math.min(0.999999, Number(random()) || 0));
+        const target = 1 + Math.floor(((first + second) / 2) * 12);
+        const level = target > current
+            ? Math.min(target, current + 3)
+            : Math.max(target, current - 2);
+        const oldPeak = clampEqualizerLevel(sourcePeaks[index] ?? current);
+        const peak = level >= oldPeak ? level : Math.max(level, oldPeak - 1);
+        nextLevels.push(level);
+        nextPeaks.push(peak);
+    }
+    return {levels: nextLevels, peaks: nextPeaks};
+}
+
+export class EqualizerAnimationLoop {
+    constructor(schedule, cancel, applyFrame, random = Math.random) {
+        this._schedule = schedule;
+        this._cancel = cancel;
+        this._applyFrame = applyFrame;
+        this._random = random;
+        this._sourceId = 0;
+        this._levels = [];
+        this._peaks = [];
+    }
+
+    start(intervalMs, barCount, initialLevels = null) {
+        this.stop();
+        const count = Math.max(0, Math.floor(Number(barCount) || 0));
+        if (count === 0)
+            return;
+
+        this._levels = Array.from({length: count}, (_value, index) =>
+            clampEqualizerLevel(initialLevels?.[index] ?? 3 + index % 5));
+        this._peaks = [...this._levels];
+        this._applyFrame([...this._levels], [...this._peaks]);
+        this._sourceId = this._schedule(intervalMs, () => {
+            const frame = nextEqualizerFrame(this._levels, this._peaks, this._random);
+            this._levels = frame.levels;
+            this._peaks = frame.peaks;
+            this._applyFrame([...this._levels], [...this._peaks]);
+            return true;
+        });
+    }
+
+    stop() {
+        if (this._sourceId)
+            this._cancel(this._sourceId);
+        this._sourceId = 0;
+        this._levels = [];
+        this._peaks = [];
     }
 
     get running() {

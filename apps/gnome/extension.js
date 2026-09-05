@@ -22,6 +22,7 @@ import {
 import {
     AnimationLoop,
     CLASSIC_THEME_ID,
+    EqualizerAnimationLoop,
     FrameAnimationLoop,
     FrameAnimationSession,
     RepeatingTimer,
@@ -251,6 +252,8 @@ export default class AgentsTrayLimitsExtension extends Extension {
         this._theme = null;
         this._themeClass = null;
         this._statusClass = null;
+        this._agentsAmpBars = [];
+        this._agentsAmpMode = null;
 
         this._settings = this.getSettings();
         this._loadProfiles();
@@ -274,7 +277,7 @@ export default class AgentsTrayLimitsExtension extends Extension {
         });
         this._animationsChangedId = this._interfaceSettings.connect(
             'changed::enable-animations',
-            () => this._syncArtAnimation()
+            () => this._syncThemeAnimations()
         );
         this._stylesheetLifecycle = new StylesheetLifecycle(
             path => this._shellTheme().load_stylesheet(Gio.File.new_for_path(path)),
@@ -299,6 +302,15 @@ export default class AgentsTrayLimitsExtension extends Extension {
             index => this._showMenuArtFrame(index)
         );
         this._frameAnimationSession = new FrameAnimationSession();
+        this._equalizerAnimationLoop = new EqualizerAnimationLoop(
+            (interval, callback) => GLib.timeout_add(
+                GLib.PRIORITY_DEFAULT,
+                interval,
+                callback
+            ),
+            sourceId => GLib.Source.remove(sourceId),
+            (levels, peaks) => this._applyAgentsAmpEqualizerFrame(levels, peaks)
+        );
         this._panelClock = new RepeatingTimer(
             (interval, callback) => GLib.timeout_add_seconds(
                 GLib.PRIORITY_DEFAULT,
@@ -320,6 +332,7 @@ export default class AgentsTrayLimitsExtension extends Extension {
     disable() {
         this._enabled = false;
         this._stopArtAnimation();
+        this._stopAgentsAmpEqualizerAnimation();
         this._setPointerCursor(false);
         this._hidePipboyTooltip();
 
@@ -358,6 +371,7 @@ export default class AgentsTrayLimitsExtension extends Extension {
         this._animationLoop = null;
         this._frameAnimationLoop = null;
         this._frameAnimationSession = null;
+        this._equalizerAnimationLoop = null;
         this._panelClock = null;
         this._removeThemeClasses();
 
@@ -377,6 +391,7 @@ export default class AgentsTrayLimitsExtension extends Extension {
     onMenuStateChanged(open) {
         if (!open) {
             this._stopArtAnimation();
+            this._stopAgentsAmpEqualizerAnimation();
             this._setPointerCursor(false);
             this._hidePipboyTooltip();
             this._frameAnimationSession?.reset();
@@ -435,7 +450,7 @@ export default class AgentsTrayLimitsExtension extends Extension {
         if (key === 'codex-binary')
             this._refresh();
         if (key === 'theme-animation')
-            this._syncArtAnimation();
+            this._syncThemeAnimations();
     }
 
     _loadProfiles() {
@@ -606,6 +621,7 @@ export default class AgentsTrayLimitsExtension extends Extension {
             return;
 
         this._stopArtAnimation();
+        this._stopAgentsAmpEqualizerAnimation();
         this._setPointerCursor(false);
         this._hidePipboyTooltip();
         this._frameAnimationSession?.reset();
@@ -744,6 +760,11 @@ export default class AgentsTrayLimitsExtension extends Extension {
         if (!this._interfaceSettings.get_boolean('enable-animations'))
             return;
         this._animationLoop.start(animation.intervalMs, animation.steps);
+    }
+
+    _syncThemeAnimations() {
+        this._syncArtAnimation();
+        this._syncAgentsAmpEqualizerAnimation();
     }
 
     _reschedule() {
@@ -1000,6 +1021,12 @@ export default class AgentsTrayLimitsExtension extends Extension {
         if (!this._indicator)
             return;
         this._prepareMenu();
+        if (this._usesAgentsAmpLayout()) {
+            this._beginAgentsAmpLayout(null, null, 'loading');
+            this._populateAgentsAmpPlaylist('loading');
+            this._endAgentsAmpLayout();
+            return;
+        }
         if (this._usesVideoDeckLayout()) {
             this._beginVideoDeckLayout(null, null, 'loading');
             this._addProfileSelector();
@@ -1028,7 +1055,12 @@ export default class AgentsTrayLimitsExtension extends Extension {
         this._prepareMenu();
 
         const error = this._error ?? {};
-        if (this._usesPipboyLayout())
+        if (this._usesAgentsAmpLayout()) {
+            this._beginAgentsAmpLayout('dead', 0, 'error');
+            this._populateAgentsAmpPlaylist('error', error);
+            this._endAgentsAmpLayout();
+            return;
+        } else if (this._usesPipboyLayout())
             this._beginPipboyLayout(null, null, 'error');
         else if (this._usesVideoDeckLayout())
             this._beginVideoDeckLayout('dead', null, 'error');
@@ -1050,7 +1082,9 @@ export default class AgentsTrayLimitsExtension extends Extension {
         if (code)
             this._addMutedLine(code);
 
-        if (this._usesPipboyLayout())
+        if (this._usesAgentsAmpLayout())
+            this._endAgentsAmpLayout();
+        else if (this._usesPipboyLayout())
             this._endPipboyLayout();
         else if (this._usesVideoDeckLayout()) {
             this._endVideoDeckLayout();
@@ -1064,6 +1098,10 @@ export default class AgentsTrayLimitsExtension extends Extension {
         if (!this._indicator || !this._data)
             return;
 
+        if (this._usesAgentsAmpLayout()) {
+            this._buildAgentsAmpDataMenu();
+            return;
+        }
         if (this._usesPipboyLayout()) {
             this._buildPipboyDataMenu();
             return;
@@ -1112,11 +1150,15 @@ export default class AgentsTrayLimitsExtension extends Extension {
 
     _prepareMenu() {
         this._stopArtAnimation();
+        this._stopAgentsAmpEqualizerAnimation();
         this._setPointerCursor(false);
         this._hidePipboyTooltip();
         this._menuArt = null;
         this._menuArtFrames = [];
         this._menuArtStatus = null;
+        this._agentsAmpBars = [];
+        this._agentsAmpMode = null;
+        this._agentsAmpPlaylistContent = null;
         this._contentTarget = null;
         this._indicator.menu.removeAll();
     }
@@ -1127,6 +1169,10 @@ export default class AgentsTrayLimitsExtension extends Extension {
 
     _usesVideoDeckLayout() {
         return this._theme?.layout === 'video-deck';
+    }
+
+    _usesAgentsAmpLayout() {
+        return this._theme?.layout === 'agents-amp';
     }
 
     _accountHeading() {
@@ -1279,6 +1325,924 @@ export default class AgentsTrayLimitsExtension extends Extension {
 
         this._endVideoDeckLayout();
         this._syncArtAnimation();
+    }
+
+    _buildAgentsAmpDataMenu() {
+        this._prepareMenu();
+
+        const remaining = primaryCodexRemaining(this._data);
+        const status = statusForRemaining(remaining);
+        this._beginAgentsAmpLayout(status, remaining, 'normal');
+        this._populateAgentsAmpPlaylist('normal');
+
+        this._endAgentsAmpLayout();
+        this._syncThemeAnimations();
+    }
+
+    _addAgentsAmpTitle(device, y, text, centered = false, closeButton = false) {
+        const labelX = centered ? 202 : 34;
+        const labelWidth = centered ? 276 : 190;
+        const leftLineWidth = centered ? 180 : 12;
+        const rightLineX = centered ? 488 : 232;
+        const rightLineWidth = centered ? 126 : 408;
+        device.add_child(new St.Widget({
+            x: 14,
+            y: y + 8,
+            width: leftLineWidth,
+            height: 3,
+            reactive: false,
+            style_class: 'agents-tray-limits-agents-amp-title-line',
+        }));
+        const label = new St.Label({
+            text,
+            x: labelX,
+            y: y + 3,
+            width: labelWidth,
+            height: 17,
+            x_align: centered ? Clutter.ActorAlign.CENTER : Clutter.ActorAlign.START,
+            y_align: Clutter.ActorAlign.CENTER,
+            reactive: false,
+            style_class: 'agents-tray-limits-agents-amp-title',
+        });
+        label.clutter_text.ellipsize = Pango.EllipsizeMode.END;
+        label.clutter_text.single_line_mode = true;
+        device.add_child(label);
+        device.add_child(new St.Widget({
+            x: rightLineX,
+            y: y + 8,
+            width: rightLineWidth,
+            height: 3,
+            reactive: false,
+            style_class: 'agents-tray-limits-agents-amp-title-line',
+        }));
+        const windowLabels = closeButton ? ['—', '×'] : ['—'];
+        windowLabels.forEach((windowLabel, index) => {
+            device.add_child(new St.Bin({
+                x: 644 + index * 18,
+                y: y + 3,
+                width: 16,
+                height: 15,
+                reactive: false,
+                can_focus: false,
+                x_align: Clutter.ActorAlign.CENTER,
+                y_align: Clutter.ActorAlign.CENTER,
+                style_class: 'agents-tray-limits-agents-amp-window-button',
+                child: new St.Label({text: windowLabel, reactive: false}),
+            }));
+        });
+    }
+
+    _addAgentsAmpDecoration(device, text, x, y, width, height, style = 'decoration') {
+        const actor = new St.Bin({
+            x,
+            y,
+            width,
+            height,
+            reactive: false,
+            can_focus: false,
+            x_align: Clutter.ActorAlign.CENTER,
+            y_align: Clutter.ActorAlign.CENTER,
+            style_class: `agents-tray-limits-agents-amp-${style}`,
+            child: new St.Label({text, reactive: false}),
+        });
+        device.add_child(actor);
+        return actor;
+    }
+
+    _createAgentsAmpSevenSegmentNumber(value, width, digitWidth = 24, digitHeight = 42) {
+        const widget = new St.Widget({
+            layout_manager: new Clutter.FixedLayout(),
+            width,
+            height: digitHeight,
+            reactive: false,
+            style_class: 'agents-tray-limits-agents-amp-seven-number',
+        });
+        const text = value !== null && value !== undefined && Number.isFinite(Number(value))
+            ? String(Math.max(0, Math.round(Number(value))))
+            : '—';
+        const gap = 4;
+        const totalWidth = text.length * digitWidth + Math.max(0, text.length - 1) * gap;
+        let x = Math.max(0, width - totalWidth);
+        for (const character of text) {
+            if (character === '—') {
+                widget.add_child(new St.Widget({
+                    x: x + 4,
+                    y: Math.round(digitHeight / 2) - 2,
+                    width: digitWidth - 8,
+                    height: 4,
+                    reactive: false,
+                    style_class: 'agents-tray-limits-agents-amp-seven-segment active',
+                }));
+            } else {
+                widget.add_child(this._createAgentsAmpSevenSegmentDigit(
+                    Number(character), x, 0, digitWidth, digitHeight
+                ));
+            }
+            x += digitWidth + gap;
+        }
+        return widget;
+    }
+
+    _createAgentsAmpSevenSegmentDigit(digit, x, y, width, height) {
+        const actor = new St.Widget({
+            layout_manager: new Clutter.FixedLayout(),
+            x,
+            y,
+            width,
+            height,
+            reactive: false,
+        });
+        const thickness = Math.max(3, Math.round(width / 6));
+        const horizontalWidth = width - thickness * 2;
+        const verticalHeight = Math.floor((height - thickness * 3) / 2);
+        const definitions = {
+            a: [thickness, 0, horizontalWidth, thickness],
+            b: [width - thickness, thickness, thickness, verticalHeight],
+            c: [width - thickness, thickness * 2 + verticalHeight, thickness, verticalHeight],
+            d: [thickness, height - thickness, horizontalWidth, thickness],
+            e: [0, thickness * 2 + verticalHeight, thickness, verticalHeight],
+            f: [0, thickness, thickness, verticalHeight],
+            g: [thickness, thickness + verticalHeight, horizontalWidth, thickness],
+        };
+        const digitSegments = [
+            'abcdef', 'bc', 'abdeg', 'abcdg', 'bcfg',
+            'acdfg', 'acdefg', 'abc', 'abcdefg', 'abcdfg',
+        ];
+        const enabled = new Set(digitSegments[digit] ?? []);
+        for (const [name, [segmentX, segmentY, segmentWidth, segmentHeight]] of
+            Object.entries(definitions)) {
+            actor.add_child(new St.Widget({
+                x: segmentX,
+                y: segmentY,
+                width: segmentWidth,
+                height: segmentHeight,
+                reactive: false,
+                style_class: `agents-tray-limits-agents-amp-seven-segment${
+                    enabled.has(name) ? ' active' : ''}`,
+            }));
+        }
+        return actor;
+    }
+
+    _agentsAmpResetCounters(timestamp) {
+        const target = Number(timestamp);
+        if (!Number.isFinite(target) || target <= 0)
+            return [{value: null, unit: this._i18n.t('time.resetUnknown')}, {value: null, unit: ''}];
+        const totalMinutes = Math.max(0, Math.ceil((target - Date.now() / 1000) / 60));
+        const days = Math.floor(totalMinutes / 1440);
+        const hours = Math.floor((totalMinutes % 1440) / 60);
+        const minutes = totalMinutes % 60;
+        const row = (key, value) => ({
+            value,
+            unit: this._i18n.tn(key, value, {count: ''}).trim().toUpperCase(),
+        });
+        if (days > 0)
+            return [row('time.day', days), row('time.hour', hours)];
+        if (hours > 0)
+            return [row('time.hour', hours), row('time.minute', minutes)];
+        return [row('time.minute', Math.max(0, minutes)), {value: null, unit: ''}];
+    }
+
+    _beginAgentsAmpLayout(status, remaining, mode) {
+        this._agentsAmpMode = mode;
+        const item = new PopupMenu.PopupMenuItem('', {
+            reactive: false,
+            can_focus: false,
+            hover: false,
+            style_class: 'agents-tray-limits-agents-amp-item',
+        });
+        item.label.hide();
+
+        const device = new St.Widget({
+            layout_manager: new Clutter.FixedLayout(),
+            width: 680,
+            height: 520,
+            clip_to_allocation: true,
+            style_class: `agents-tray-limits-agents-amp-device ${mode}`,
+        });
+        for (const [y, height] of [[0, 160], [164, 138], [306, 214]]) {
+            device.add_child(new St.Widget({
+                x: 0,
+                y,
+                width: 680,
+                height,
+                reactive: false,
+                style_class: 'agents-tray-limits-agents-amp-module',
+            }));
+        }
+        this._addAgentsAmpTitle(device, 0, this._i18n.t('agentsAmp.player'), true, true);
+        this._addAgentsAmpTitle(device, 164, this._i18n.t('agentsAmp.equalizer'));
+        this._addAgentsAmpTitle(device, 306, this._i18n.t('agentsAmp.playlist'));
+
+        const [accountTitle] = this._accountHeading();
+        const profile = this._activeProfile();
+        const provider = providerName(profile?.provider);
+        const plan = profile?.provider === 'codex'
+            ? planLabel(this._data?.account?.planType)
+            : provider;
+        const accountLine = [accountTitle, plan].filter(Boolean).join(' · ');
+        const stateText = mode === 'loading'
+            ? this._i18n.t('agentsAmp.loading')
+            : mode === 'error'
+                ? this._i18n.t('agentsAmp.offline')
+                : status
+                    ? this._i18n.t(STATUS_DETAILS[status].key)
+                    : this._i18n.t('menu.noPrimary');
+        const safeRemaining = Number.isFinite(remaining) ? Math.round(remaining) : null;
+
+        const lcd = new St.Widget({
+            layout_manager: new Clutter.FixedLayout(),
+            x: 80,
+            y: 27,
+            width: 446,
+            height: 86,
+            clip_to_allocation: true,
+            style_class: 'agents-tray-limits-agents-amp-lcd',
+        });
+        lcd.add_child(new St.Label({
+            text: accountLine,
+            x: 12,
+            y: 9,
+            width: 266,
+            height: 18,
+            style_class: 'agents-tray-limits-agents-amp-account',
+        }));
+        lcd.add_child(new St.Label({
+            text: provider,
+            x: 12,
+            y: 30,
+            width: 266,
+            height: 16,
+            style_class: 'agents-tray-limits-agents-amp-led-label',
+        }));
+        lcd.add_child(new St.Label({
+            text: stateText,
+            x: 12,
+            y: 51,
+            width: 266,
+            height: 28,
+            style_class: 'agents-tray-limits-agents-amp-state',
+        }));
+        lcd.add_child(new St.Widget({
+            x: 286,
+            y: 8,
+            width: 2,
+            height: 70,
+            reactive: false,
+            style_class: 'agents-tray-limits-agents-amp-lcd-divider',
+        }));
+        lcd.add_child(new St.Label({
+            text: this._i18n.t('agentsAmp.remaining'),
+            x: 298,
+            y: 8,
+            width: 134,
+            height: 16,
+            x_align: Clutter.ActorAlign.CENTER,
+            style_class: 'agents-tray-limits-agents-amp-remaining-label',
+        }));
+        const percentNumber = this._createAgentsAmpSevenSegmentNumber(
+            safeRemaining, 104, 22, 44
+        );
+        percentNumber.set_position(298, 29);
+        lcd.add_child(percentNumber);
+        lcd.add_child(new St.Label({
+            text: '%',
+            x: 407,
+            y: 41,
+            width: 27,
+            height: 32,
+            style_class: 'agents-tray-limits-agents-amp-percent-sign',
+        }));
+        device.add_child(lcd);
+
+        for (const [label, y, warning] of [['PWR', 36, false], ['NET', 59, false], ['LMT', 82, true]]) {
+            device.add_child(new St.Widget({
+                x: 18,
+                y: y + 2,
+                width: 8,
+                height: 8,
+                reactive: false,
+                style_class: `agents-tray-limits-agents-amp-led${warning ? ' warning' : ''}`,
+            }));
+            device.add_child(new St.Label({
+                text: label,
+                x: 32,
+                y,
+                width: 40,
+                height: 14,
+                reactive: false,
+                style_class: 'agents-tray-limits-agents-amp-led-label',
+            }));
+        }
+        this._addAgentsAmpDecoration(device, 'EQ', 540, 29, 54, 29);
+        this._addAgentsAmpDecoration(device, 'PL', 602, 29, 54, 29);
+        device.add_child(new St.Widget({
+            x: 542,
+            y: 76,
+            width: 91,
+            height: 5,
+            reactive: false,
+            style_class: 'agents-tray-limits-agents-amp-volume-track',
+        }));
+        device.add_child(new St.Widget({
+            x: 543,
+            y: 77,
+            width: 58,
+            height: 3,
+            reactive: false,
+            style_class: 'agents-tray-limits-agents-amp-volume-fill',
+        }));
+        device.add_child(new St.Widget({
+            x: 596,
+            y: 71,
+            width: 9,
+            height: 15,
+            reactive: false,
+            style_class: 'agents-tray-limits-agents-amp-volume-thumb',
+        }));
+        device.add_child(new St.Label({
+            text: '◖))',
+            x: 636,
+            y: 68,
+            width: 28,
+            height: 20,
+            reactive: false,
+            style_class: 'agents-tray-limits-agents-amp-speaker',
+        }));
+        const transport = ['◀◀', '▶', '▮▮', '■', '▶▶', '▲', 'SHUF', 'REP'];
+        transport.forEach((label, index) =>
+            this._addAgentsAmpDecoration(
+                device, label, 22 + index * 81, 121, 72, 29, 'transport'
+            ));
+
+        const spectrum = new St.Widget({
+            layout_manager: new Clutter.FixedLayout(),
+            x: 16,
+            y: 193,
+            width: 296,
+            height: 96,
+            clip_to_allocation: true,
+            reactive: false,
+            style_class: 'agents-tray-limits-agents-amp-spectrum',
+        });
+        this._agentsAmpBars = [];
+        for (let index = 0; index < 28; index++) {
+            const x = 8 + index * 10;
+            const cells = [];
+            for (let level = 1; level <= 12; level++) {
+                const cell = new St.Widget({
+                    x,
+                    y: 72 - (level - 1) * 6,
+                    width: 6,
+                    height: 4,
+                    reactive: false,
+                    style_class: 'agents-tray-limits-agents-amp-spectrum-cell',
+                });
+                spectrum.add_child(cell);
+                cells.push(cell);
+            }
+            this._agentsAmpBars.push({cells});
+        }
+        const spectrumFrequencies = [
+            '31', '62', '125', '250', '500', '1K', '2K', '4K', '8K', '16K',
+        ];
+        spectrumFrequencies.forEach((label, index) => spectrum.add_child(new St.Label({
+            text: label,
+            x: 3 + index * 28,
+            y: 82,
+            width: 28,
+            height: 11,
+            x_align: Clutter.ActorAlign.CENTER,
+            reactive: false,
+            style_class: 'agents-tray-limits-agents-amp-spectrum-frequency',
+        })));
+        device.add_child(spectrum);
+
+        const initialLevels = mode === 'error'
+            ? Array(28).fill(1)
+            : Array.from({length: 28}, (_value, index) => 2 + (index * 5 % 4));
+        this._applyAgentsAmpEqualizerFrame(initialLevels, initialLevels);
+
+        for (const [label, y] of [
+            ['+12', 198], ['+6', 211], ['0', 225], ['-6', 239], ['-12', 252],
+        ]) {
+            device.add_child(new St.Label({
+                text: label,
+                x: 314,
+                y,
+                width: 22,
+                height: 10,
+                x_align: Clutter.ActorAlign.END,
+                reactive: false,
+                style_class: 'agents-tray-limits-agents-amp-slider-scale',
+            }));
+        }
+        const frequencies = [
+            'PRE', '60', '170', '310', '600', '1K', '3K', '6K', '12K', '16K',
+        ];
+        frequencies.forEach((label, index) => {
+            const x = 337 + index * 22;
+            device.add_child(new St.Widget({
+                x: x + 9,
+                y: 198,
+                width: 3,
+                height: 62,
+                reactive: false,
+                style_class: 'agents-tray-limits-agents-amp-slider-track',
+            }));
+            for (let tick = 0; tick < 5; tick++) {
+                device.add_child(new St.Widget({
+                    x: x + 4,
+                    y: 201 + tick * 13,
+                    width: 13,
+                    height: 1,
+                    reactive: false,
+                    style_class: 'agents-tray-limits-agents-amp-slider-tick',
+                }));
+            }
+            device.add_child(new St.Widget({
+                x: x + 3,
+                y: 214 + (index % 4) * 8,
+                width: 15,
+                height: 7,
+                reactive: false,
+                style_class: 'agents-tray-limits-agents-amp-slider-thumb',
+            }));
+            device.add_child(new St.Label({
+                text: label,
+                x,
+                y: 270,
+                width: 21,
+                height: 12,
+                x_align: Clutter.ActorAlign.CENTER,
+                reactive: false,
+                style_class: 'agents-tray-limits-agents-amp-frequency',
+            }));
+        });
+        const primary = defaultRateBucket(this._data)?.primary;
+        const counters = this._agentsAmpResetCounters(primary?.resetsAt);
+        const reset = new St.Widget({
+            layout_manager: new Clutter.FixedLayout(),
+            x: 584,
+            y: 193,
+            width: 82,
+            height: 96,
+            reactive: false,
+            style_class: 'agents-tray-limits-agents-amp-reset',
+        });
+        reset.add_child(new St.Label({
+            text: this._i18n.t('agentsAmp.resetTime'),
+            x: 3,
+            y: 6,
+            width: 76,
+            height: 16,
+            x_align: Clutter.ActorAlign.CENTER,
+            style_class: 'agents-tray-limits-agents-amp-reset-label',
+        }));
+        counters.forEach((counter, index) => {
+            const row = new St.Widget({
+                layout_manager: new Clutter.FixedLayout(),
+                x: 5,
+                y: 25 + index * 31,
+                width: 72,
+                height: 28,
+                reactive: false,
+                style_class: 'agents-tray-limits-agents-amp-reset-row',
+            });
+            const number = this._createAgentsAmpSevenSegmentNumber(counter.value, 34, 10, 23);
+            number.set_position(0, 1);
+            row.add_child(number);
+            const unit = new St.Label({
+                text: counter.unit,
+                x: 37,
+                y: 6,
+                width: 34,
+                height: 16,
+                reactive: false,
+                style_class: 'agents-tray-limits-agents-amp-reset-unit',
+            });
+            unit.clutter_text.ellipsize = Pango.EllipsizeMode.END;
+            unit.clutter_text.single_line_mode = true;
+            row.add_child(unit);
+            reset.add_child(row);
+        });
+        device.add_child(reset);
+
+        const scroll = new St.ScrollView({
+            x: 14,
+            y: 331,
+            width: 652,
+            height: 141,
+            clip_to_allocation: true,
+            hscrollbar_policy: St.PolicyType.NEVER,
+            vscrollbar_policy: St.PolicyType.AUTOMATIC,
+            overlay_scrollbars: false,
+            enable_mouse_scrolling: true,
+            style_class: 'agents-tray-limits-agents-amp-playlist-screen',
+        });
+        scroll.update_fade_effect?.(new Clutter.Margin({
+            top: 0,
+            right: 0,
+            bottom: 0,
+            left: 0,
+        }));
+        const content = new St.BoxLayout({
+            vertical: true,
+            x_expand: true,
+            x_align: Clutter.ActorAlign.FILL,
+            style_class: 'agents-tray-limits-agents-amp-playlist-content',
+        });
+        scroll.set_child(content);
+        scroll.get_vadjustment().connect('notify::value', () => {
+            content.queue_redraw();
+            scroll.queue_redraw();
+            device.queue_redraw();
+        });
+        device.add_child(scroll);
+
+        const activeProvider = this._activeProfile()?.provider ?? 'codex';
+        device.add_child(this._createAgentsAmpButton(
+            this._i18n.t('agentsAmp.refresh'), 'refresh', 'view-refresh-symbolic',
+            18, 481, 140, 31, this._i18n.t('a11y.refresh'),
+            () => this._refresh(), !this._isRefreshInProgress()
+        ));
+        device.add_child(this._createAgentsAmpButton(
+            this._i18n.t('agentsAmp.profile'), 'profile', 'web-browser-symbolic',
+            162, 481, 124, 31,
+            this._i18n.t('a11y.openProvider', {provider: providerName(activeProvider)}),
+            () => {
+                this._indicator.menu.close();
+                this._openUrl(providerUrl(activeProvider));
+            }
+        ));
+        device.add_child(this._createAgentsAmpButton(
+            this._i18n.t('agentsAmp.settings'), 'settings', 'preferences-system-symbolic',
+            290, 481, 210, 31, this._i18n.t('a11y.settings'),
+            () => {
+                this._indicator.menu.close();
+                this.openPreferences();
+            }
+        ));
+        device.add_child(this._createAgentsAmpButton(
+            this._i18n.t('agentsAmp.close'), 'close', 'window-close-symbolic',
+            504, 481, 162, 31, this._i18n.t('a11y.close'),
+            () => this._indicator.menu.close()
+        ));
+
+        item.add_child(device);
+        this._indicator.menu.addMenuItem(item);
+        this._agentsAmpPlaylistContent = content;
+        this._contentTarget = null;
+    }
+
+    _addAgentsAmpPlaylistSection(text) {
+        if (!this._agentsAmpPlaylistContent)
+            return;
+        const label = new St.Label({
+            text: String(text).toUpperCase(),
+            x_expand: true,
+            style_class: 'agents-tray-limits-agents-amp-playlist-section',
+        });
+        label.clutter_text.ellipsize = Pango.EllipsizeMode.END;
+        label.clutter_text.single_line_mode = true;
+        this._agentsAmpPlaylistContent.add_child(label);
+    }
+
+    _addAgentsAmpPlaylistMessage(text, error = false) {
+        if (!this._agentsAmpPlaylistContent)
+            return;
+        const label = new St.Label({
+            text,
+            x_expand: true,
+            style_class: `agents-tray-limits-agents-amp-playlist-message${error ? ' error' : ''}`,
+        });
+        label.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
+        label.clutter_text.line_wrap = true;
+        label.clutter_text.line_wrap_mode = Pango.WrapMode.WORD_CHAR;
+        this._agentsAmpPlaylistContent.add_child(label);
+    }
+
+    _addAgentsAmpProfileRow(profile) {
+        const selected = profile.id === this._activeProfile()?.id;
+        const button = new St.Button({
+            reactive: true,
+            can_focus: true,
+            track_hover: true,
+            x_expand: true,
+            accessible_name: this._i18n.t('profiles.select', {profile: profile.label}),
+            style_class: `agents-tray-limits-agents-amp-profile-row${selected ? ' selected' : ''}`,
+        });
+        const row = new St.BoxLayout({
+            x_expand: true,
+            style_class: 'agents-tray-limits-agents-amp-profile-row-content',
+        });
+        row.add_child(new St.Label({
+            text: selected ? '●' : '○',
+            width: 17,
+            style_class: 'agents-tray-limits-agents-amp-profile-dot',
+        }));
+        const name = new St.Label({
+            text: `${providerName(profile.provider)} · ${profile.label}`,
+            width: 390,
+            style_class: 'agents-tray-limits-agents-amp-playlist-primary',
+        });
+        name.clutter_text.ellipsize = Pango.EllipsizeMode.END;
+        name.clutter_text.single_line_mode = true;
+        row.add_child(name);
+        const summary = new St.Label({
+            text: this._profileSummary(profile),
+            x_expand: true,
+            x_align: Clutter.ActorAlign.END,
+            style_class: 'agents-tray-limits-agents-amp-playlist-value',
+        });
+        summary.clutter_text.ellipsize = Pango.EllipsizeMode.END;
+        summary.clutter_text.single_line_mode = true;
+        row.add_child(summary);
+        button.set_child(row);
+        button.connect('clicked', () => this._selectProfile(profile.id));
+        this._agentsAmpPlaylistContent?.add_child(button);
+    }
+
+    _addAgentsAmpLimitHeader(display) {
+        const row = new St.BoxLayout({
+            x_expand: true,
+            style_class: 'agents-tray-limits-agents-amp-table-header',
+        });
+        for (const [text, width] of [
+            [this._i18n.t('agentsAmp.columnWindow'), 192],
+            [this._i18n.t('agentsAmp.columnReset'), 220],
+            [this._i18n.t('agentsAmp.columnScale'), 120],
+            [this._i18n.t(display === 'used'
+                ? 'agentsAmp.usedShort'
+                : 'agentsAmp.remainingShort'), 65],
+        ]) {
+            const label = new St.Label({
+                text: text.toUpperCase(),
+                width,
+                x_align: width === 65 ? Clutter.ActorAlign.END : Clutter.ActorAlign.START,
+            });
+            label.clutter_text.ellipsize = Pango.EllipsizeMode.END;
+            label.clutter_text.single_line_mode = true;
+            row.add_child(label);
+        }
+        this._agentsAmpPlaylistContent?.add_child(row);
+    }
+
+    _addAgentsAmpLimitRow(bucket, kind, window) {
+        const used = clampPercent(window.usedPercent);
+        const remaining = Math.max(0, 100 - used);
+        const display = this._settings.get_string('panel-display');
+        const displayed = display === 'used' ? used : remaining;
+        const severity = used >= 90 ? 'critical' : used >= 70 ? 'warning' : 'normal';
+        const row = new St.BoxLayout({
+            x_expand: true,
+            style_class: 'agents-tray-limits-agents-amp-limit-row',
+        });
+        const identity = new St.BoxLayout({
+            vertical: true,
+            width: 192,
+            style_class: 'agents-tray-limits-agents-amp-limit-identity',
+        });
+        const name = new St.Label({
+            text: `${humanizeBucket(bucket)} · ${kind}`,
+            style_class: 'agents-tray-limits-agents-amp-playlist-primary',
+        });
+        name.clutter_text.ellipsize = Pango.EllipsizeMode.END;
+        name.clutter_text.single_line_mode = true;
+        identity.add_child(name);
+        identity.add_child(new St.Label({
+            text: formatWindow(window.windowDurationMins, false, this._i18n),
+            style_class: 'agents-tray-limits-agents-amp-playlist-secondary',
+        }));
+        row.add_child(identity);
+
+        const reset = new St.Label({
+            text: formatRelativeReset(window.resetsAt, this._i18n),
+            width: 220,
+            y_align: Clutter.ActorAlign.CENTER,
+            style_class: 'agents-tray-limits-agents-amp-playlist-reset',
+        });
+        reset.clutter_text.ellipsize = Pango.EllipsizeMode.END;
+        reset.clutter_text.single_line_mode = true;
+        row.add_child(reset);
+
+        const track = new St.BoxLayout({
+            width: 120,
+            height: 7,
+            y_align: Clutter.ActorAlign.CENTER,
+            style_class: 'agents-tray-limits-agents-amp-table-progress-track',
+        });
+        track.add_child(new St.Widget({
+            width: displayed > 0 ? Math.max(2, Math.round(116 * displayed / 100)) : 0,
+            height: 5,
+            style_class: `agents-tray-limits-agents-amp-table-progress-fill ${severity}`,
+        }));
+        row.add_child(track);
+
+        row.add_child(new St.Label({
+            text: `${Math.round(displayed)}%`,
+            width: 65,
+            y_align: Clutter.ActorAlign.CENTER,
+            x_align: Clutter.ActorAlign.END,
+            style_class: `agents-tray-limits-agents-amp-playlist-percent ${severity}`,
+        }));
+        this._agentsAmpPlaylistContent?.add_child(row);
+
+        if (bucket.rateLimitReachedType) {
+            this._addAgentsAmpPlaylistMessage(
+                this._i18n.t('menu.limitReached', {type: bucket.rateLimitReachedType}), true
+            );
+        }
+    }
+
+    _addAgentsAmpStatRow(label, value) {
+        const row = new St.BoxLayout({
+            x_expand: true,
+            style_class: 'agents-tray-limits-agents-amp-stat-row',
+        });
+        row.add_child(new St.Label({
+            text: label,
+            width: 412,
+            style_class: 'agents-tray-limits-agents-amp-playlist-secondary',
+        }));
+        row.add_child(new St.Label({
+            text: value,
+            x_expand: true,
+            x_align: Clutter.ActorAlign.END,
+            style_class: 'agents-tray-limits-agents-amp-playlist-value',
+        }));
+        this._agentsAmpPlaylistContent?.add_child(row);
+    }
+
+    _populateAgentsAmpPlaylist(mode, error = null) {
+        if (!this._agentsAmpPlaylistContent)
+            return;
+        this._addAgentsAmpPlaylistSection(this._i18n.t('profiles.section'));
+        if (this._profiles.length > 0) {
+            for (const profile of this._profiles)
+                this._addAgentsAmpProfileRow(profile);
+        } else {
+            this._addAgentsAmpPlaylistMessage(this._i18n.t('profiles.pending'));
+        }
+
+        if (mode === 'loading') {
+            this._addAgentsAmpPlaylistSection(this._i18n.t('menu.limits'));
+            this._addAgentsAmpPlaylistMessage(this._i18n.t('menu.loading'));
+            return;
+        }
+        if (mode === 'error') {
+            this._addAgentsAmpPlaylistSection(this._i18n.t('menu.unavailable'));
+            this._addAgentsAmpPlaylistMessage(
+                this._errorMessage(error?.errorCode, error?.message), true
+            );
+            const hint = this._errorHint(error?.errorCode);
+            if (hint)
+                this._addAgentsAmpPlaylistMessage(hint);
+            return;
+        }
+
+        const buckets = this._getBuckets();
+        this._addAgentsAmpPlaylistSection(this._i18n.t('menu.limits'));
+        if (buckets.length === 0) {
+            this._addAgentsAmpPlaylistMessage(this._i18n.t('menu.noActiveLimits'));
+        } else {
+            const display = this._settings.get_string('panel-display');
+            this._addAgentsAmpLimitHeader(display);
+            for (const bucket of buckets) {
+                const windows = [
+                    [this._i18n.t('menu.primary'), bucket.primary],
+                    [this._i18n.t('menu.secondary'), bucket.secondary],
+                ].filter(([, window]) => window && typeof window === 'object');
+                for (const [kind, window] of windows)
+                    this._addAgentsAmpLimitRow(bucket, kind, window);
+            }
+        }
+
+        const credits = Number(this._data?.rateLimits?.rateLimitResetCredits?.availableCount);
+        if (Number.isFinite(credits) && credits > 0) {
+            this._addAgentsAmpStatRow(
+                this._i18n.t('menu.resetCredits', {count: ''}).trim(),
+                formatInteger(credits, this._i18n)
+            );
+        }
+
+        if (!this._settings.get_boolean('show-tokens'))
+            return;
+        const usage = this._data?.usage;
+        const summary = usage?.summary;
+        const daily = Array.isArray(usage?.dailyUsageBuckets) ? usage.dailyUsageBuckets : [];
+        if (!summary && daily.length === 0) {
+            if (this._data?.usageError) {
+                this._addAgentsAmpPlaylistSection(this._i18n.t('menu.activity'));
+                this._addAgentsAmpPlaylistMessage(this._i18n.t('menu.tokenUnavailable'));
+            }
+            return;
+        }
+        this._addAgentsAmpPlaylistSection(this._i18n.t('menu.activity'));
+        const today = this._tokensToday(daily);
+        const lastSevenDays = this._tokensLastDays(daily, 7);
+        if (today !== null)
+            this._addAgentsAmpStatRow(this._i18n.t('menu.today'), formatCompactNumber(today, this._i18n));
+        if (lastSevenDays !== null) {
+            this._addAgentsAmpStatRow(
+                this._i18n.t('menu.last7'), formatCompactNumber(lastSevenDays, this._i18n)
+            );
+        }
+        if (summary?.lifetimeTokens !== null && summary?.lifetimeTokens !== undefined) {
+            this._addAgentsAmpStatRow(
+                this._i18n.t('menu.lifetime'),
+                formatCompactNumber(summary.lifetimeTokens, this._i18n)
+            );
+        }
+    }
+
+    _createAgentsAmpButton(
+        label, assetKey, iconName, x, y, width, height, accessibleName, callback,
+        sensitive = true
+    ) {
+        const button = new St.Button({
+            x,
+            y,
+            width,
+            height,
+            reactive: sensitive,
+            can_focus: sensitive,
+            track_hover: sensitive,
+            accessible_name: accessibleName,
+            style_class: `agents-tray-limits-agents-amp-button ` +
+                `agents-tray-limits-agents-amp-button-${assetKey}`,
+        });
+        const content = new St.BoxLayout({
+            x_expand: true,
+            y_expand: true,
+            x_align: Clutter.ActorAlign.CENTER,
+            y_align: Clutter.ActorAlign.CENTER,
+            style_class: 'agents-tray-limits-agents-amp-button-content',
+        });
+        content.add_child(new St.Icon({
+            icon_name: iconName,
+            icon_size: 12,
+            y_align: Clutter.ActorAlign.CENTER,
+            style_class: 'agents-tray-limits-agents-amp-button-icon',
+        }));
+        const buttonLabel = new St.Label({
+            text: label,
+            y_align: Clutter.ActorAlign.CENTER,
+        });
+        buttonLabel.clutter_text.ellipsize = Pango.EllipsizeMode.END;
+        buttonLabel.clutter_text.single_line_mode = true;
+        content.add_child(buttonLabel);
+        button.set_child(content);
+        if (!sensitive)
+            button.add_style_pseudo_class('insensitive');
+        button.connect('clicked', callback);
+        button.connect_after('button-press-event', () => Clutter.EVENT_STOP);
+        button.connect_after('button-release-event', () => Clutter.EVENT_STOP);
+        return button;
+    }
+
+    _applyAgentsAmpEqualizerFrame(levels, peaks) {
+        if (!this._agentsAmpBars?.length)
+            return;
+        for (const [index, actors] of this._agentsAmpBars.entries()) {
+            const level = Math.max(1, Math.min(12, Math.round(levels[index] ?? 1)));
+            const peak = Math.max(level, Math.min(12, Math.round(peaks[index] ?? level)));
+            actors.cells.forEach((cell, cellIndex) => {
+                const cellLevel = cellIndex + 1;
+                const state = this._agentsAmpMode === 'error'
+                    ? cellLevel <= level ? ' active' : ''
+                    : cellLevel === peak
+                    ? ' peak'
+                    : cellLevel <= level
+                        ? ' active'
+                        : '';
+                cell.set_style_class_name(
+                    `agents-tray-limits-agents-amp-spectrum-cell${state}`
+                );
+            });
+        }
+    }
+
+    _stopAgentsAmpEqualizerAnimation() {
+        this._equalizerAnimationLoop?.stop();
+    }
+
+    _syncAgentsAmpEqualizerAnimation() {
+        this._stopAgentsAmpEqualizerAnimation();
+        if (!this._usesAgentsAmpLayout() || this._agentsAmpMode !== 'normal')
+            return;
+        if (this._agentsAmpBars?.length !== 28 || !this._indicator?.menu?.isOpen)
+            return;
+        if (!this._settings.get_boolean('theme-animation'))
+            return;
+        if (!this._interfaceSettings.get_boolean('enable-animations'))
+            return;
+        this._equalizerAnimationLoop.start(120, 28);
+    }
+
+    _endAgentsAmpLayout() {
+        this._contentTarget = null;
+        this._agentsAmpPlaylistContent = null;
     }
 
     _beginVideoDeckLayout(status, remaining, mode) {
@@ -1951,14 +2915,18 @@ export default class AgentsTrayLimitsExtension extends Extension {
         top.add_child(valueLabel);
         box.add_child(top);
 
+        const progressWidth = this._usesAgentsAmpLayout() ? 600 : PANEL_PROGRESS_WIDTH;
         const track = new St.BoxLayout({
-            width: PANEL_PROGRESS_WIDTH,
+            width: progressWidth,
             height: 6,
             style_class: 'agents-tray-limits-progress-track',
         });
         const severity = used >= 90 ? 'critical' : used >= 70 ? 'warning' : '';
-        const fillWidth = used > 0
-            ? Math.max(2, Math.round(PANEL_PROGRESS_WIDTH * used / 100))
+        const progressValue = this._usesAgentsAmpLayout() && display !== 'used'
+            ? remaining
+            : used;
+        const fillWidth = progressValue > 0
+            ? Math.max(2, Math.round(progressWidth * progressValue / 100))
             : 0;
         const fill = new St.Widget({
             width: fillWidth,
@@ -2114,7 +3082,8 @@ export default class AgentsTrayLimitsExtension extends Extension {
     }
 
     _preparePipboyLabel(label, wrap = true) {
-        if (!this._usesPipboyLayout() && !this._usesVideoDeckLayout())
+        if (!this._usesPipboyLayout() && !this._usesVideoDeckLayout() &&
+            !this._usesAgentsAmpLayout())
             return label;
         label.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
         label.clutter_text.line_wrap = wrap;

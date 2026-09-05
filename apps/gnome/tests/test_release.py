@@ -144,6 +144,10 @@ class ReleaseIdentityTests(unittest.TestCase):
             for status in ("good", "worried", "critical", "dead"):
                 self.assertIn(f"themes/night-video-deck/assets/art/{status}.png", names)
                 self.assertIn(f"themes/night-video-deck/assets/panel/{status}.png", names)
+                self.assertIn(f"themes/agents-amp/assets/status/{status}.png", names)
+            self.assertIn("themes/agents-amp/theme.json", names)
+            self.assertIn("themes/agents-amp/theme.css", names)
+            self.assertIn("themes/agents-amp/assets/ui/chrome-shell-v2.png", names)
             self.assertFalse(any(name.startswith("themes/fallout-3/") for name in names))
             self.assertNotIn("README.md", names)
             self.assertFalse(any(name.startswith("tests/") for name in names))
@@ -161,6 +165,25 @@ class ReleaseIdentityTests(unittest.TestCase):
                     "device-shell-v3.png",
                     "red-button-v4.png",
                     "red-button-pressed-v4.png",
+                },
+            )
+            agents_amp_ui = {
+                Path(name).name
+                for name in names
+                if name.startswith("themes/agents-amp/assets/ui/")
+            }
+            self.assertEqual(
+                agents_amp_ui,
+                {
+                    "chrome-shell-v2.png",
+                    "button-refresh-idle-v1.png",
+                    "button-refresh-pressed-v1.png",
+                    "button-profile-idle-v1.png",
+                    "button-profile-pressed-v1.png",
+                    "button-settings-idle-v1.png",
+                    "button-settings-pressed-v1.png",
+                    "button-close-idle-v1.png",
+                    "button-close-pressed-v1.png",
                 },
             )
 

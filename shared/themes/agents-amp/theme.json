@@ -1,0 +1,38 @@
+{
+  "version": 2,
+  "id": "agents-amp",
+  "name": "Agents Amp",
+  "description": "An original late-1990s media-player skin with docked player, equalizer, and playlist panels.",
+  "platforms": {
+    "gnome": {
+      "stylesheet": "theme.css",
+      "layout": "agents-amp"
+    },
+    "macos": {
+      "layout": "agents-amp",
+      "palette": {
+        "background": "#050711FF",
+        "surface": "#11152DFF",
+        "primary": "#69E31CFF",
+        "secondary": "#6FD8FFFF",
+        "text": "#E1E5F2FF",
+        "muted": "#8B95B5FF",
+        "warning": "#F2D15CFF",
+        "critical": "#FF4D6DFF"
+      },
+      "typography": {"family": "monospaced", "scale": 0.9}
+    }
+  },
+  "art": {
+    "good": "assets/status/good.png",
+    "worried": "assets/status/worried.png",
+    "critical": "assets/status/critical.png",
+    "dead": "assets/status/dead.png"
+  },
+  "panelArt": {
+    "good": "assets/status/good.png",
+    "worried": "assets/status/worried.png",
+    "critical": "assets/status/critical.png",
+    "dead": "assets/status/dead.png"
+  }
+}

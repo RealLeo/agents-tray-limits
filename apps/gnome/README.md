@@ -49,14 +49,15 @@ profile and switches between them instantly.
 
 - Explicit Codex and Claude Code profiles with isolated configuration directories.
 - A compact panel value such as `65% · reset 4d 22h`, calculated from the selected profile's primary window.
-- A profile summary and instant switching in the Classic, Pip-Boy, and Night Video Deck interfaces.
+- A profile summary and instant switching in the Classic, Pip-Boy, Night Video Deck, and Agents Amp interfaces.
 - Remaining-usage and used-usage display modes.
 - Detailed primary, secondary, and additional rate-limit groups in the menu.
 - Reset countdowns and optional token statistics.
 - Automatic Codex CLI discovery, including NVM, Volta, Bun, pnpm, asdf, and mise installations.
-- Three built-in themes:
+- Four built-in themes:
   - `fallout-2`, the default Pip-Boy 2000-inspired theme with one-shot character animations;
   - `night-video-deck`, a dark VCR/CRT console where one gray tabby's condition reflects the remaining limit;
+  - `agents-amp`, an original media-player console with docked player, animated 28-band equalizer, playlist, and pixel-art monitor status icons;
   - `classic`, the native GNOME-style fallback.
 - Declarative user themes without executable theme code.
 - English, Russian, German, French, and Simplified Chinese interfaces.
@@ -161,7 +162,7 @@ To uninstall:
 | **Refresh interval** | Select an automatic refresh interval from one minute to one hour. |
 | **Panel icon** | Show or hide the state icon after the panel text. |
 | **Theme** | Choose a built-in or user theme. `fallout-2` is selected on new installations; invalid or missing themes safely fall back to `classic`. |
-| **Theme animation** | Disable the large menu artwork animation. GNOME's system animation preference is also respected. |
+| **Theme animation** | Enable theme artwork and equalizer animation while the menu is open. GNOME's system animation preference is also respected. |
 | **Detailed limits and tokens** | Show all returned limit groups and token statistics. |
 | **Profiles** | Create, edit, delete, and select Codex or Claude Code profiles. Names must be unique. A non-default directory must be absolute or start with `~/`. |
 | **Codex CLI path** | Explicitly select the Codex launcher if GNOME Shell cannot see your normal terminal `PATH`. |
@@ -250,7 +251,9 @@ All manifest paths must resolve to regular raster files inside the theme directo
 
 Theme names and descriptions from user manifests are displayed exactly as authored. Built-in theme metadata follows the selected interface language.
 
-Manifest v2 themes may select the GNOME hardware layout `pipboy-2000` or `video-deck` under `platforms.gnome.layout`. Night Video Deck uses `video-deck` on GNOME and deliberately falls back to the existing `classic` layout on macOS while retaining its status artwork.
+Manifest v2 themes may select `pipboy-2000`, `video-deck`, or `agents-amp` under `platforms.gnome.layout`. The macOS layouts are `classic`, `pipboy-2000`, and `agents-amp`. Night Video Deck deliberately falls back to `classic` on macOS, while Agents Amp uses the same 680×520 three-panel proportions on both platforms. Selecting `agents-amp` in a declarative user theme reuses the built-in widget layout and its animation behavior; it does not execute theme code.
+
+Agents Amp's four runtime monitor icons live under `shared/themes/agents-amp/assets/status/`. Their original 16×16 XPM source and MIT licensing note live separately under `tools/theme-assets/agents-amp/`. No Winamp logo, llama, third-party skin, or protected character artwork is included.
 
 <a id="privacy"></a>
 ## 09 // PRIVACY
