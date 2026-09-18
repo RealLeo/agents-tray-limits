@@ -14,6 +14,26 @@
     "elapsedMs": {"type": "integer", "minimum": 0},
     "codexBinary": {"type": "string"},
     "account": {"type": ["object", "null"]},
+    "resetAccount": {"type": ["string", "null"], "description": "GNOME account fingerprint for confirmed resets; contains no credentials."},
+    "resetAttempt": {
+      "type": ["object", "null"],
+      "required": ["idempotencyKey", "account"],
+      "properties": {
+        "idempotencyKey": {"type": "string"},
+        "account": {"type": "string"}
+      }
+    },
+    "resetLastResult": {
+      "type": "object",
+      "required": ["idempotencyKey", "ok"],
+      "properties": {
+        "idempotencyKey": {"type": "string"},
+        "ok": {"type": "boolean"},
+        "outcome": {"enum": ["reset", "alreadyRedeemed", "noCredit", "nothingToReset"]},
+        "errorCode": {"type": "string"}
+      }
+    },
+    "resetStateError": {"type": "boolean"},
     "rateLimits": {"$ref": "#/$defs/rateLimitResult"},
     "usage": {"type": ["object", "null"]},
     "errorCode": {"type": "string"},

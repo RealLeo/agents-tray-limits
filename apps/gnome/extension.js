@@ -10,8 +10,11 @@ import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
+import * as ModalDialog from 'resource:///org/gnome/shell/ui/modalDialog.js';
+import * as Dialog from 'resource:///org/gnome/shell/ui/dialog.js';
 
 import {createTranslator} from './i18n.js';
+import {resetAvailability, resetResultMessage} from './resetLogic.js';
 import {
     parseProfilesDocument,
     providerName,
@@ -241,6 +244,7 @@ export default class AgentsTrayLimitsExtension extends Extension {
         this._profileStates = new Map();
         this._refreshQueue = [];
         this._runningRefreshes = 0;
+        this._resetDialog = null;
         this._menuArt = null;
         this._menuArtFrames = [];
         this._menuArtStatus = null;
@@ -331,6 +335,8 @@ export default class AgentsTrayLimitsExtension extends Extension {
 
     disable() {
         this._enabled = false;
+        this._resetDialog?.destroy();
+        this._resetDialog = null;
         this._stopArtAnimation();
         this._stopAgentsAmpEqualizerAnimation();
         this._setPointerCursor(false);
@@ -353,6 +359,7 @@ export default class AgentsTrayLimitsExtension extends Extension {
         }
 
         for (const state of this._profileStates.values()) {
+            this._stopResetProcess(state);
             state.cancellable?.cancel();
             if (state.process) {
                 try {
@@ -447,8 +454,11 @@ export default class AgentsTrayLimitsExtension extends Extension {
         else if (this._data)
             this._buildDataMenu();
 
-        if (key === 'codex-binary')
+        if (key === 'codex-binary') {
+            for (const state of this._profileStates.values())
+                state.resetUnsupported = false;
             this._refresh();
+        }
         if (key === 'theme-animation')
             this._syncThemeAnimations();
     }
@@ -467,6 +477,7 @@ export default class AgentsTrayLimitsExtension extends Extension {
             const old = previous.get(profile.id);
             const signature = `${profile.provider}\0${profile.configDir}`;
             if (old && old.signature !== signature) {
+                this._stopResetProcess(old);
                 old.cancellable?.cancel();
                 try {
                     old.process?.force_exit();
@@ -488,6 +499,7 @@ export default class AgentsTrayLimitsExtension extends Extension {
         for (const [id, state] of previous.entries()) {
             if (next.has(id))
                 continue;
+            this._stopResetProcess(state);
             state.cancellable?.cancel();
             try {
                 state.process?.force_exit();
@@ -804,7 +816,7 @@ export default class AgentsTrayLimitsExtension extends Extension {
 
         for (const profile of this._profiles) {
             const state = this._profileStates.get(profile.id);
-            if (!state || state.refreshing || state.queued)
+            if (!state || state.refreshing || state.queued || state.resetBusy || state.resetConfirming)
                 continue;
             state.refreshing = true;
             state.queued = true;
@@ -941,7 +953,183 @@ export default class AgentsTrayLimitsExtension extends Extension {
         state.refreshing = false;
         state.error = null;
         state.data = payload;
+        if (state.resetAttempt?.idempotencyKey &&
+            state.resetAttempt.idempotencyKey === payload.resetLastResult?.idempotencyKey) {
+            state.resetMessage = resetResultMessage(payload.resetLastResult);
+            if (payload.resetLastResult.errorCode === 'reset_unsupported')
+                state.resetUnsupported = true;
+        }
+        state.resetAttempt = payload.resetAttempt ?? null;
         this._profileStateChanged(profileId);
+    }
+
+    _resetAvailability(profile = this._activeProfile(), state = this._activeState()) {
+        return resetAvailability(profile, state, Date.now() / 1000,
+            Math.max(60, this._settings.get_uint('refresh-interval')));
+    }
+
+    _providerAction(claudeLabel = 'CLAUDE') {
+        const activeProvider = this._activeProfile()?.provider ?? 'codex';
+        if (activeProvider === 'claude') {
+            return {
+                label: claudeLabel, icon: 'web-browser-symbolic', sensitive: true,
+                accessibleName: this._i18n.t('a11y.openProvider', {provider: providerName(activeProvider)}),
+                activate: () => {
+                    this._indicator.menu.close();
+                    this._openUrl(providerUrl(activeProvider));
+                },
+            };
+        }
+        const availability = this._resetAvailability();
+        return {
+            label: 'RESET', icon: 'edit-undo-symbolic', sensitive: availability.enabled,
+            accessibleName: this._i18n.t('reset.action'),
+            activate: () => this._requestReset(),
+        };
+    }
+
+    _addResetStatus() {
+        if (this._activeProfile()?.provider !== 'codex')
+            return;
+        const state = this._activeState();
+        const availability = this._resetAvailability();
+        const messages = new Set([state?.resetMessage, availability.reason].filter(Boolean));
+        for (const key of messages) {
+            const text = this._i18n.t('reset.status', {
+                message: this._i18n.t(key, {count: availability.count ?? 0}),
+            });
+            if (this._agentsAmpPlaylistContent)
+                this._addAgentsAmpPlaylistMessage(text);
+            else
+                this._addMutedLine(text);
+        }
+    }
+
+    _requestReset() {
+        const profile = this._activeProfile();
+        const state = this._activeState();
+        const availability = this._resetAvailability(profile, state);
+        if (!availability.enabled || this._resetDialog)
+            return;
+        const capturedProfile = {...profile};
+        const account = state.data.resetAccount;
+        const attempt = availability.pending ?? {
+            idempotencyKey: GLib.uuid_string_random(), account,
+        };
+        state.resetConfirming = true;
+        const dialog = new ModalDialog.ModalDialog();
+        this._resetDialog = dialog;
+        dialog.contentLayout.add_child(new Dialog.MessageDialogContent({
+            title: this._i18n.t(availability.pending ? 'reset.retryTitle' : 'reset.confirmTitle'),
+            description: this._i18n.t('reset.confirmAccount', {
+                profile: capturedProfile.label,
+                account: state.data.account?.email ?? '—',
+            }),
+        }));
+        const close = () => dialog.close();
+        dialog.setButtons([
+            {label: this._i18n.t('reset.cancel'), action: close, key: Clutter.KEY_Escape, default: true},
+            {label: this._i18n.t(availability.pending ? 'reset.retryAction' : 'reset.confirm'), action: () => {
+                if (!state.resetConfirming)
+                    return;
+                state.resetConfirming = false;
+                close();
+                if (!this._enabled || this._profileStates?.get(capturedProfile.id) !== state ||
+                    state.data?.resetAccount !== account)
+                    return;
+                this._runReset(capturedProfile, state, attempt);
+            }},
+        ]);
+        dialog.connect('destroy', () => {
+            if (this._resetDialog === dialog)
+                this._resetDialog = null;
+            state.resetConfirming = false;
+        });
+        this._indicator.menu.close();
+        this._rebuildCurrentMenu();
+        if (!dialog.open())
+            dialog.destroy();
+    }
+
+    _stopResetProcess(state) {
+        state.resetCancellable?.cancel();
+        try {
+            state.resetProcess?.force_exit();
+        } catch (_error) {
+            // The helper may already have exited. Its journal survives.
+        }
+    }
+
+    _runReset(profile, state, attempt) {
+        if (state.resetBusy)
+            return;
+        const pythonPath = GLib.find_program_in_path('python3');
+        if (!pythonPath) {
+            state.resetMessage = 'errors.python_not_found';
+            this._profileStateChanged(profile.id);
+            return;
+        }
+        const argv = [pythonPath, GLib.build_filenamev([this.path, 'bin', 'agents-tray-limits-helper.py']),
+            '--provider', 'codex', '--profile-id', profile.id, '--timeout', '15',
+            '--reset-limits', '--idempotency-key', attempt.idempotencyKey,
+            '--expected-account', attempt.account];
+        if (profile.configDir)
+            argv.push('--config-dir', profile.configDir);
+        const binary = this._settings.get_string('codex-binary').trim();
+        if (binary)
+            argv.push('--codex-bin', binary);
+        state.resetBusy = true;
+        state.resetAttempt = attempt;
+        state.resetMessage = null;
+        this._profileStateChanged(profile.id);
+        const finish = payload => {
+            if (!this._enabled || this._profileStates?.get(profile.id) !== state)
+                return;
+            state.resetBusy = false;
+            state.resetProcess = null;
+            state.resetCancellable = null;
+            state.resetMessage = resetResultMessage(payload);
+            if (payload?.errorCode === 'reset_unsupported')
+                state.resetUnsupported = true;
+            const completed = payload?.ok && ['reset', 'alreadyRedeemed', 'noCredit', 'nothingToReset'].includes(payload.outcome);
+            const rejected = ['reset_unsupported', 'reset_no_credit', 'reset_above_threshold',
+                'reset_no_data', 'reset_account_changed', 'reset_state_invalid'].includes(payload?.errorCode);
+            if (completed || rejected) {
+                state.resetAttempt = null;
+                if (state.data)
+                    state.data.resetAttempt = null;
+            }
+            if (payload?.snapshot) {
+                state.data = {...payload.snapshot, usage: state.data?.usage, usageError: state.data?.usageError};
+                state.error = null;
+            } else if (completed) {
+                // Do not leave pre-reset percentages looking current.
+                state.error = {errorCode: 'reset_refresh_failed'};
+            }
+            this._profileStateChanged(profile.id);
+            if (!payload?.snapshot)
+                this._refresh(); // Reads only, also recovers the persisted attempt.
+        };
+        try {
+            state.resetCancellable = new Gio.Cancellable();
+            state.resetProcess = Gio.Subprocess.new(argv,
+                Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE);
+            state.resetProcess.communicate_utf8_async(null, state.resetCancellable, (process, result) => {
+                let payload;
+                try {
+                    const [, stdout] = process.communicate_utf8_finish(result);
+                    payload = JSON.parse(stdout.trim());
+                    if (!payload || typeof payload !== 'object' ||
+                        (payload.ok && !['reset', 'alreadyRedeemed', 'noCredit', 'nothingToReset'].includes(payload.outcome)))
+                        throw new Error('Invalid reset response');
+                } catch (_error) {
+                    payload = {ok: false, errorCode: 'reset_uncertain'};
+                }
+                finish(payload);
+            });
+        } catch (_error) {
+            finish({ok: false, errorCode: 'reset_uncertain'});
+        }
     }
 
     _finishProfileWithError(profileId, error) {
@@ -1209,6 +1397,7 @@ export default class AgentsTrayLimitsExtension extends Extension {
     _addProfileSelector() {
         if (!this._profiles.length)
             return;
+        this._addResetStatus();
         const activeId = this._activeProfile()?.id;
         if (this._contentTarget) {
             this._addSection(this._i18n.t('profiles.section'));
@@ -1860,20 +2049,16 @@ export default class AgentsTrayLimitsExtension extends Extension {
         });
         device.add_child(scroll);
 
-        const activeProvider = this._activeProfile()?.provider ?? 'codex';
         device.add_child(this._createAgentsAmpButton(
             this._i18n.t('agentsAmp.refresh'), 'refresh', 'view-refresh-symbolic',
             18, 481, 140, 31, this._i18n.t('a11y.refresh'),
             () => this._refresh(), !this._isRefreshInProgress()
         ));
+        const providerAction = this._providerAction(this._i18n.t('agentsAmp.profile'));
         device.add_child(this._createAgentsAmpButton(
-            this._i18n.t('agentsAmp.profile'), 'profile', 'web-browser-symbolic',
-            162, 481, 124, 31,
-            this._i18n.t('a11y.openProvider', {provider: providerName(activeProvider)}),
-            () => {
-                this._indicator.menu.close();
-                this._openUrl(providerUrl(activeProvider));
-            }
+            providerAction.label, 'profile', providerAction.icon,
+            162, 481, 124, 31, providerAction.accessibleName,
+            providerAction.activate, providerAction.sensitive
         ));
         device.add_child(this._createAgentsAmpButton(
             this._i18n.t('agentsAmp.settings'), 'settings', 'preferences-system-symbolic',
@@ -2077,6 +2262,7 @@ export default class AgentsTrayLimitsExtension extends Extension {
     _populateAgentsAmpPlaylist(mode, error = null) {
         if (!this._agentsAmpPlaylistContent)
             return;
+        this._addResetStatus();
         this._addAgentsAmpPlaylistSection(this._i18n.t('profiles.section'));
         if (this._profiles.length > 0) {
             for (const profile of this._profiles)
@@ -2193,8 +2379,10 @@ export default class AgentsTrayLimitsExtension extends Extension {
         buttonLabel.clutter_text.single_line_mode = true;
         content.add_child(buttonLabel);
         button.set_child(content);
-        if (!sensitive)
+        if (!sensitive) {
             button.add_style_pseudo_class('insensitive');
+            button.add_effect(new Clutter.DesaturateEffect({factor: 1.0}));
+        }
         button.connect('clicked', callback);
         button.connect_after('button-press-event', () => Clutter.EVENT_STOP);
         button.connect_after('button-release-event', () => Clutter.EVENT_STOP);
@@ -2356,7 +2544,6 @@ export default class AgentsTrayLimitsExtension extends Extension {
         }
         device.add_child(preview);
 
-        const activeProvider = this._activeProfile()?.provider ?? 'codex';
         device.add_child(this._createVideoDeckButton(
             this._i18n.t('videoDeck.refresh'),
             'view-refresh-symbolic',
@@ -2365,15 +2552,11 @@ export default class AgentsTrayLimitsExtension extends Extension {
             () => this._refresh(),
             !this._isRefreshInProgress()
         ));
+        const providerAction = this._providerAction();
         device.add_child(this._createVideoDeckButton(
-            activeProvider === 'claude' ? 'CLAUDE' : 'CODEX',
-            'web-browser-symbolic',
-            96, 451, 74, 58,
-            this._i18n.t('a11y.openProvider', {provider: providerName(activeProvider)}),
-            () => {
-                this._indicator.menu.close();
-                this._openUrl(providerUrl(activeProvider));
-            }
+            providerAction.label, providerAction.icon,
+            96, 451, 74, 58, providerAction.accessibleName,
+            providerAction.activate, providerAction.sensitive
         ));
         device.add_child(this._createVideoDeckButton(
             this._i18n.t('videoDeck.settings'),
@@ -2485,8 +2668,10 @@ export default class AgentsTrayLimitsExtension extends Extension {
         buttonLabel.clutter_text.single_line_mode = true;
         content.add_child(buttonLabel);
         button.set_child(content);
-        if (!sensitive)
+        if (!sensitive) {
             button.add_style_pseudo_class('insensitive');
+            button.add_effect(new Clutter.DesaturateEffect({factor: 1.0}));
+        }
         if (sensitive) {
             button.connect('enter-event', () => {
                 this._setPointerCursor(true);
@@ -2652,14 +2837,10 @@ export default class AgentsTrayLimitsExtension extends Extension {
             () => this._refresh(),
             !this._isRefreshInProgress()
         ));
-        const activeProvider = this._activeProfile()?.provider ?? 'codex';
+        const providerAction = this._providerAction();
         buttons.add_child(this._createPipboyButton(
-            activeProvider === 'claude' ? 'CLAUDE' : 'CODEX',
-            this._i18n.t('a11y.openProvider', {provider: providerName(activeProvider)}),
-            () => {
-                this._indicator.menu.close();
-                this._openUrl(providerUrl(activeProvider));
-            }
+            providerAction.label, providerAction.accessibleName,
+            providerAction.activate, providerAction.sensitive
         ));
         buttons.add_child(this._createPipboyButton(
             'SETTINGS',
@@ -2758,8 +2939,10 @@ export default class AgentsTrayLimitsExtension extends Extension {
         buttonLabel.clutter_text.single_line_mode = true;
         content.add_child(buttonLabel);
         button.set_child(content);
-        if (!sensitive)
+        if (!sensitive) {
             button.add_style_pseudo_class('insensitive');
+            button.add_effect(new Clutter.DesaturateEffect({factor: 1.0}));
+        }
         if (sensitive) {
             button.connect('enter-event', () => {
                 this._setPointerCursor(true);
@@ -3195,15 +3378,13 @@ export default class AgentsTrayLimitsExtension extends Extension {
         refreshItem.connect('activate', () => this._refresh());
         menu.addMenuItem(refreshItem);
 
-        if (includeOpenProvider) {
-            const activeProvider = this._activeProfile()?.provider ?? 'codex';
+        if (includeOpenProvider || this._activeProfile()?.provider === 'codex') {
+            const action = this._providerAction();
             const openItem = new PopupMenu.PopupImageMenuItem(
-                this._i18n.t('actions.openProvider', {
-                    provider: providerName(activeProvider),
-                }),
-                'web-browser-symbolic'
+                action.accessibleName, action.icon
             );
-            openItem.connect('activate', () => this._openUrl(providerUrl(activeProvider)));
+            openItem.sensitive = action.sensitive;
+            openItem.connect('activate', action.activate);
             menu.addMenuItem(openItem);
         }
 

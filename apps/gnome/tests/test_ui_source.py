@@ -70,7 +70,8 @@ class PipboyUiSourceTests(unittest.TestCase):
         self.assertNotIn("this._refresh()", language_branch)
         self.assertIn("key === 'theme-id' || key === 'language'", setting_method)
         self.assertIn("this._buildDataMenu()", setting_method)
-        self.assertIn("if (key === 'codex-binary')\n            this._refresh()", setting_method)
+        self.assertIn("if (key === 'codex-binary') {", setting_method)
+        self.assertIn("state.resetUnsupported = false", setting_method)
 
         self.assertIn("settings.set_string('language', language)", PREFS)
         self.assertIn("window.remove(window._agentsTrayLimitsPage)", PREFS)
@@ -131,7 +132,7 @@ class PipboyUiSourceTests(unittest.TestCase):
         method = method.split("_addPipboyState(", 1)[0]
         self.assertLess(method.index("agents-tray-limits-pipboy-button-lens"),
                         method.index("agents-tray-limits-pipboy-button-label"))
-        for label in ("'REFRESH'", "'CODEX'", "'SETTINGS'", "'CLOSE'"):
+        for label in ("'REFRESH'", "'RESET'", "'SETTINGS'", "'CLOSE'"):
             self.assertIn(label, SOURCE)
         self.assertNotIn("REFRESH…", SOURCE)
         button_label_rule = CSS.split(".agents-tray-limits-pipboy-button-label {", 1)[1]
@@ -361,7 +362,7 @@ class NightVideoDeckUiSourceTests(unittest.TestCase):
         self.assertIn("videoDeck.refresh", method)
         self.assertIn("videoDeck.settings", method)
         self.assertIn("videoDeck.close", method)
-        self.assertIn("activeProvider === 'claude' ? 'CLAUDE' : 'CODEX'", method)
+        self.assertIn("const providerAction = this._providerAction()", method)
         button = SOURCE.split("_createVideoDeckButton(\n        label", 1)[1]
         button = button.split("_addVideoDeckState(", 1)[0]
         self.assertIn("can_focus: sensitive", button)
@@ -481,7 +482,7 @@ class NightVideoDeckUiSourceTests(unittest.TestCase):
         for asset_key in ("refresh", "profile", "settings", "close"):
             self.assertIn(f"'{asset_key}'", layout)
             self.assertIn(f"agents-tray-limits-agents-amp-button-{asset_key}", AMP_CSS)
-        self.assertIn("providerUrl(activeProvider)", layout)
+        self.assertIn("const providerAction = this._providerAction(", layout)
         self.assertIn("this.openPreferences()", layout)
         self.assertIn("this._indicator.menu.close()", layout)
 

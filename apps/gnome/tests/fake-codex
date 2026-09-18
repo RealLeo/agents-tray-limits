@@ -4,12 +4,16 @@ import json
 import os
 import sys
 import time
+from pathlib import Path
 
 if 'app-server' not in sys.argv[1:]:
     print('fake-codex only supports app-server', file=sys.stderr)
     raise SystemExit(2)
 
 scenario = os.environ.get('FAKE_CODEX_SCENARIO', 'success')
+reset_sent = False
+store_path = os.environ.get('FAKE_CODEX_RESET_STORE')
+redeemed = json.loads(Path(store_path).read_text()) if store_path and Path(store_path).exists() else []
 
 for raw in sys.stdin:
     try:
@@ -20,6 +24,9 @@ for raw in sys.stdin:
     request_id = request.get('id')
     if request_id is None:
         continue
+    if os.environ.get('FAKE_CODEX_REQUEST_LOG'):
+        with open(os.environ['FAKE_CODEX_REQUEST_LOG'], 'a') as log:
+            log.write(json.dumps(request) + '\n')
 
     if scenario == 'timeout':
         time.sleep(30)
@@ -65,7 +72,15 @@ for raw in sys.stdin:
     elif method == 'account/rateLimits/read':
         if scenario == 'old-codex':
             response = {'id': request_id, 'error': {'code': -32601, 'message': 'Method not found'}}
+        elif scenario == 'reset-read-failed' and reset_sent:
+            response = {'id': request_id, 'error': {'code': -32000, 'message': 'Read failed'}}
         else:
+            primary_used = float(os.environ.get('FAKE_CODEX_USED', '27'))
+            secondary_used = float(os.environ.get('FAKE_CODEX_SECONDARY', '61'))
+            credit_count = int(os.environ.get('FAKE_CODEX_CREDITS', '2'))
+            if redeemed:
+                primary_used = secondary_used = 0
+                credit_count = max(0, credit_count - len(redeemed))
             response = {
                 'id': request_id,
                 'result': {
@@ -95,6 +110,26 @@ for raw in sys.stdin:
                     'rateLimitResetCredits': {'availableCount': 2, 'credits': []},
                 },
             }
+            for bucket in [response['result']['rateLimits'], response['result']['rateLimitsByLimitId']['codex']]:
+                bucket['primary']['usedPercent'] = primary_used
+                bucket['secondary']['usedPercent'] = secondary_used
+            response['result']['rateLimitResetCredits']['availableCount'] = credit_count
+    elif method == 'account/rateLimitResetCredit/consume':
+        reset_sent = True
+        key = request.get('params', {}).get('idempotencyKey')
+        if scenario == 'reset-unsupported':
+            response = {'id': request_id, 'error': {'code': -32601, 'message': 'Method not found'}}
+        else:
+            outcome = {'reset-no-credit': 'noCredit', 'reset-nothing': 'nothingToReset'}.get(scenario, 'reset')
+            if key in redeemed:
+                outcome = 'alreadyRedeemed'
+            elif outcome == 'reset':
+                redeemed.append(key)
+                if store_path:
+                    Path(store_path).write_text(json.dumps(redeemed))
+                if scenario == 'reset-timeout':
+                    time.sleep(5)
+            response = {'id': request_id, 'result': {'outcome': outcome}}
     elif method == 'account/usage/read':
         if scenario == 'no-usage':
             response = {'id': request_id, 'error': {'code': -32601, 'message': 'Method not found'}}

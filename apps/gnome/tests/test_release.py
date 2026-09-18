@@ -88,6 +88,11 @@ class ReleaseIdentityTests(unittest.TestCase):
             helper_source,
         ))
         self.assertEqual(error_codes, {
+            "reset_state_invalid",
+            "reset_busy",
+            "reset_pending",
+            "reset_account_changed",
+            "reset_unsupported",
             "app_server_error",
             "app_server_start_failed",
             "app_server_stopped",
@@ -135,6 +140,7 @@ class ReleaseIdentityTests(unittest.TestCase):
             self.assertIn("LICENSE", names)
             self.assertIn("NOTICE.md", names)
             self.assertIn("profileLogic.js", names)
+            self.assertIn("resetLogic.js", names)
             for locale in ("en", "ru", "de", "fr", "zh-CN"):
                 self.assertIn(f"locales/{locale}.json", names)
             self.assertIn("themes/fallout-2/assets/ui/device-shell-v3.png", names)

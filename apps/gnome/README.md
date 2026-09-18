@@ -201,6 +201,28 @@ The top panel, character state, detailed limits, and token statistics use only t
 
 For Codex, the primary window of the main Codex group drives the panel. Secondary windows and groups such as Spark remain visible in the detailed menu but do not affect the panel value or character state. For Claude Code, the documented five-hour window is normalized as primary and the seven-day window as secondary. Claude values are used only while the primary reset time remains in the future; after that the extension asks for an update from Claude instead of guessing a new percentage.
 
+### Reset Codex limits
+
+The **RESET** button replaces the Codex website action in every GNOME theme and
+the standard menu. It is enabled when the selected profile has an available reset
+credit and at most 10% remains in its main five-hour or weekly Codex window.
+Other limit groups do not enable this action. When unavailable, the button is
+gray and the menu explains why. Claude's website action is unchanged.
+
+Clicking RESET asks you to confirm the profile and account before using one reset.
+The helper rechecks the account and current limits before submitting the request.
+The server decides which eligible windows are reset; the extension then reads the
+updated limits and remaining reset count. A failed follow-up read is reported
+separately from a successful reset.
+
+After an interrupted request, refresh the data and use RESET to retry the saved
+attempt. The same identifier is reused, including after a Shell restart, to avoid
+spending another credit. Reset attempts are never started by automatic refresh.
+The private journal under `${XDG_STATE_HOME:-~/.local/state}/agents-tray-limits/codex-resets/`
+stores an attempt UUID, an account fingerprint and its result, without credentials.
+Do not delete an unfinished attempt to retry with a new identifier. Older Codex
+versions keep monitoring working but report that an update is needed for resets.
+
 Character states are based on the **remaining** primary percentage, even when the numeric display is set to used percentage:
 
 | Remaining | State |
@@ -261,7 +283,7 @@ Agents Amp's four runtime monitor icons live under `shared/themes/agents-amp/ass
 > [!NOTE]
 > **LOCAL-DATA PROTOCOL** — account data stays on the machine and credentials remain under the control of the official CLIs.
 
-For each Codex profile, Agents Tray Limits starts a separate local `codex app-server` with the corresponding `CODEX_HOME` and uses its account, rate-limit, and token-usage read methods. Authentication remains managed by Codex CLI.
+For each Codex profile, Agents Tray Limits starts a separate local `codex app-server` with the corresponding `CODEX_HOME` and uses its account, rate-limit, and token-usage read methods. Only a confirmed RESET action invokes `account/rateLimitResetCredit/consume`. Authentication remains managed by Codex CLI.
 
 For Claude, the optional collector receives the same JSON that Claude Code already sends to its configured status-line command. It discards everything except `rate_limits.five_hour`, `rate_limits.seven_day`, the Claude version, and the local update time. Collector directories and scripts use mode `0700`; caches and backups use mode `0600`.
 

@@ -8,6 +8,7 @@ The project uses the integer version in `metadata.json`; Git release tags use th
 
 ### Added
 
+- Added confirmed Codex limit resets to every GNOME layout, with availability checks, disabled-state explanations, account verification, and persistent idempotent recovery after interrupted requests.
 - Added the cross-platform `agents-amp` theme: an original 680×520 late-1990s media-player layout with player, equalizer, and playlist panels, localized controls, and four MIT-licensed pixel-art monitor states.
 - Added a 28-band, 12-level Agents Amp equalizer that updates every 120 ms, smooths randomized targets, retains decaying peak markers, and respects theme/system animation preferences and Reduce Motion.
 - Extended theme manifest v2 with the `agents-amp` layout on GNOME and macOS.

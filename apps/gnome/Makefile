@@ -17,6 +17,7 @@ check:
 	node --check extension.js
 	node --check prefs.js
 	node --check themeLogic.js
+	node --check resetLogic.js
 	node --check profileLogic.js
 	node --check themeLoader.js
 	@if [ -f i18n.js ]; then node --check i18n.js; fi
@@ -25,6 +26,7 @@ check:
 	gjs -m tests/test_i18n.js
 	gjs -m tests/test_theme.js
 	gjs -m tests/test_profiles.js
+	node tests/test_reset.mjs
 	python3 tools/check_css.py
 	python3 -m unittest discover -s tests -p 'test_*.py'
 	python3 $(REPO_ROOT)/tools/animation-rig/v18/verify_previews.py >/dev/null

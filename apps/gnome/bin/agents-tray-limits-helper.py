@@ -12,6 +12,7 @@ import argparse
 import contextlib
 import fcntl
 import glob
+import hashlib
 import json
 import os
 import queue
@@ -23,6 +24,7 @@ import sys
 import tempfile
 import threading
 import time
+import uuid
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, TextIO
@@ -463,7 +465,183 @@ def collect_codex_usage(
                 "code": usage_error.get("code"),
                 "message": usage_error.get("message", "Token activity is unavailable."),
             }
+        result.update(reset_metadata(account, config_dir))
         return result
+
+
+def reset_account_identity(account: dict[str, Any]) -> str | None:
+    # account/read exposes email, not credentials. Include IDs if a newer
+    # protocol supplies them, but not mutable plan or usage information.
+    identity = {key: account.get(key) for key in
+                ("type", "email", "id", "accountId", "chatgptAccountId")}
+    if not any(isinstance(identity[key], str) and identity[key].strip()
+               for key in ("email", "id", "accountId", "chatgptAccountId")):
+        return None
+    return hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
+
+
+def reset_state_path(config_dir: str) -> Path:
+    configured = Path(os.path.expanduser(os.environ.get("XDG_STATE_HOME", "")))
+    root = configured if configured.is_absolute() else Path.home() / ".local/state"
+    location = os.fspath(_config_directory("codex", config_dir).resolve())
+    name = hashlib.sha256(location.encode()).hexdigest()
+    return root / "agents-tray-limits" / "codex-resets" / f"{name}.json"
+
+
+def read_reset_state(path: Path) -> dict[str, Any]:
+    state = _read_json_object(path, "reset_state_invalid", "Cannot read the saved reset attempt.")
+    if state:
+        try:
+            uuid.UUID(state["idempotencyKey"])
+            if (not re.fullmatch(r"[0-9a-f]{64}", state["account"]) or
+                    state["status"] not in {"pending", "complete"}):
+                raise ValueError("Invalid account or attempt status")
+            if (state["status"] == "complete" and
+                    state.get("outcome") not in {"reset", "alreadyRedeemed", "noCredit", "nothingToReset"} and
+                    state.get("errorCode") != "reset_unsupported"):
+                raise ValueError("Invalid terminal result")
+        except (KeyError, TypeError, ValueError, AttributeError) as exc:
+            raise HelperError("reset_state_invalid", "The saved reset attempt is invalid.") from exc
+    return state
+
+
+def reset_metadata(account: dict[str, Any], config_dir: str) -> dict[str, Any]:
+    result: dict[str, Any] = {"resetAccount": reset_account_identity(account), "resetAttempt": None}
+    try:
+        state = read_reset_state(reset_state_path(config_dir))
+        if state.get("status") == "pending":
+            result["resetAttempt"] = {key: state[key] for key in ("idempotencyKey", "account")}
+        elif state.get("status") == "complete" and state.get("account") == result["resetAccount"]:
+            result["resetLastResult"] = {
+                "idempotencyKey": state["idempotencyKey"],
+                "ok": "outcome" in state,
+                **({"outcome": state["outcome"]} if "outcome" in state else {"errorCode": state["errorCode"]}),
+            }
+    except HelperError:
+        # A damaged journal must block mutations, but not normal monitoring.
+        result["resetStateError"] = True
+    return result
+
+
+def reset_unavailable_reason(rate_result: dict[str, Any], now: float) -> str | None:
+    credits = rate_result.get("rateLimitResetCredits")
+    count = credits.get("availableCount") if isinstance(credits, dict) else None
+    if type(count) is not int or count < 0:
+        return "reset_no_data"
+    if count == 0:
+        return "reset_no_credit"
+    by_id = rate_result.get("rateLimitsByLimitId")
+    bucket = by_id.get("codex") if isinstance(by_id, dict) else None
+    if not isinstance(bucket, dict):
+        legacy = rate_result.get("rateLimits")
+        if isinstance(legacy, dict) and legacy.get("limitId") in (None, "codex"):
+            bucket = legacy
+    if not isinstance(bucket, dict):
+        return "reset_no_data"
+    windows = []
+    for name in ("primary", "secondary"):
+        window = bucket.get(name)
+        if not isinstance(window, dict):
+            continue
+        used, resets = window.get("usedPercent"), window.get("resetsAt")
+        if (type(used) in (int, float) and 0 <= used <= 100 and
+                type(resets) in (int, float) and now < resets < float("inf") and
+                window.get("windowDurationMins") in (300, 10080)):
+            windows.append(used)
+    if not windows:
+        return "reset_no_data"
+    return None if any(used >= 90 for used in windows) else "reset_above_threshold"
+
+
+def _save_reset_state(path: Path, state: dict[str, Any]) -> None:
+    _atomic_write_json(path, state)
+    descriptor = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
+def reset_codex_limits(codex_binary: str, timeout: float, profile_id: str,
+                       config_dir: str, key: str, expected_account: str) -> dict[str, Any]:
+    path = reset_state_path(config_dir)
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    # Serialize attempts for the same CODEX_HOME, including aliased profiles.
+    descriptor = os.open(path.with_suffix(".lock"), os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(descriptor, "w") as lock:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError as exc:
+            raise HelperError("reset_busy", "A reset is already running for this profile.") from exc
+        saved = read_reset_state(path)
+        retry = saved.get("status") == "pending"
+        if retry and (saved["idempotencyKey"] != key or saved["account"] != expected_account):
+            raise HelperError("reset_pending", "Retry the saved reset attempt before starting another.")
+
+        with AppServerClient(codex_binary, timeout, config_dir) as client:
+            _rpc_result(client.request("initialize", 1, {"clientInfo": CLIENT_INFO}), "initialize")
+            client.notify("initialized", {})
+            account_result, _ = _rpc_result(client.request("account/read", 2, {"refreshToken": False}), "account/read")
+            account = account_result.get("account") if isinstance(account_result, dict) else None
+            if not isinstance(account, dict) or account.get("type") != "chatgpt":
+                raise HelperError("unsupported_auth", "Sign in with ChatGPT to reset limits.")
+            if reset_account_identity(account) != expected_account:
+                raise HelperError("reset_account_changed", "The account changed since confirmation.")
+
+            outcome = None
+            if saved.get("idempotencyKey") == key and saved.get("status") == "complete":
+                # A helper may have exited after recording the result but before
+                # delivering stdout. Never reinterpret that as a new operation.
+                if saved.get("account") != expected_account:
+                    raise HelperError("reset_account_changed", "The saved attempt belongs to another account.")
+                if saved.get("errorCode"):
+                    raise HelperError(saved["errorCode"], "The saved reset attempt did not complete a reset.")
+                outcome = saved.get("outcome")
+            elif not retry:
+                rates, _ = _rpc_result(client.request("account/rateLimits/read", 3), "account/rateLimits/read")
+                reason = reset_unavailable_reason(rates, time.time()) if isinstance(rates, dict) else "reset_no_data"
+                if reason:
+                    raise HelperError(reason, "A reset is not currently available.")
+
+            result: dict[str, Any] = {
+                "ok": True, "action": "reset-limits", "profileId": profile_id,
+                "provider": "codex", "idempotencyKey": key, "snapshot": None,
+            }
+            if outcome is None:
+                saved = {"idempotencyKey": key, "account": expected_account, "status": "pending"}
+                _save_reset_state(path, saved)
+                try:
+                    response = client.request("account/rateLimitResetCredit/consume", 4, {"idempotencyKey": key})
+                    rpc_error = response.get("error")
+                    if isinstance(rpc_error, dict) and rpc_error.get("code") == -32601:
+                        saved.update(status="complete", errorCode="reset_unsupported")
+                        _save_reset_state(path, saved)
+                        raise HelperError("reset_unsupported", "Update Codex CLI to reset limits.")
+                    consumed, _ = _rpc_result(response, "account/rateLimitResetCredit/consume")
+                    outcome = consumed.get("outcome") if isinstance(consumed, dict) else None
+                    if outcome not in {"reset", "alreadyRedeemed", "noCredit", "nothingToReset"}:
+                        raise HelperError("protocol_error", "Unexpected reset result.")
+                    saved.update(status="complete", outcome=outcome)
+                    _save_reset_state(path, saved)
+                except HelperError as exc:
+                    if exc.code == "reset_unsupported":
+                        raise
+                    result.update(ok=False, errorCode="reset_uncertain", message="The reset result is unknown. Retry the same attempt.")
+                    return result
+
+            result["outcome"] = outcome
+            try:
+                rates, _ = _rpc_result(client.request("account/rateLimits/read", 5), "account/rateLimits/read")
+                if not isinstance(rates, dict):
+                    raise HelperError("no_rate_limits", "Updated limits are unavailable.")
+                result["snapshot"] = {
+                    "ok": True, "helperVersion": HELPER_VERSION, "profileId": profile_id,
+                    "provider": "codex", "source": "codex-app-server", "fetchedAt": int(time.time()),
+                    "account": account, "rateLimits": rates, **reset_metadata(account, config_dir),
+                }
+            except HelperError as exc:
+                result["refreshError"] = {"errorCode": exc.code, "message": exc.message}
+            return result
 
 
 def collect_usage(codex_binary: str, timeout: float) -> dict[str, Any]:
@@ -979,8 +1157,21 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     monitor.add_argument("--install-claude-monitor", action="store_true")
     monitor.add_argument("--restore-claude-monitor", action="store_true")
     monitor.add_argument("--claude-monitor-status", action="store_true")
+    monitor.add_argument("--reset-limits", action="store_true", help="Consume one confirmed Codex reset")
+    parser.add_argument("--idempotency-key", default="", help="UUID for this confirmed reset attempt")
+    parser.add_argument("--expected-account", default="", help="resetAccount fingerprint from the confirmed snapshot")
     parser.add_argument("--pretty", action="store_true", help="Pretty-print the JSON response")
-    return parser.parse_args(argv)
+    args = parser.parse_args(argv)
+    if args.reset_limits:
+        try:
+            uuid.UUID(args.idempotency_key)
+        except ValueError:
+            parser.error("--reset-limits requires a UUID --idempotency-key")
+        if args.provider != "codex" or not re.fullmatch(r"[0-9a-f]{64}", args.expected_account):
+            parser.error("--reset-limits requires --provider codex and --expected-account")
+    elif args.idempotency_key or args.expected_account:
+        parser.error("reset parameters require --reset-limits")
+    return args
 
 
 def emit(payload: dict[str, Any], pretty: bool) -> None:
@@ -1007,12 +1198,11 @@ def main(argv: list[str] | None = None) -> int:
             codex_binary = find_codex(args.codex_bin or None)
             config_dir = os.fspath(_config_directory("codex", args.config_dir)) \
                 if args.config_dir else ""
-            payload = collect_codex_usage(
-                codex_binary,
-                timeout,
-                profile_id,
-                config_dir,
-            )
+            if args.reset_limits:
+                payload = reset_codex_limits(codex_binary, timeout, profile_id, config_dir,
+                                            args.idempotency_key, args.expected_account)
+            else:
+                payload = collect_codex_usage(codex_binary, timeout, profile_id, config_dir)
         emit(payload, args.pretty)
         return 0
     except HelperError as exc:

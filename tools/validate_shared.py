@@ -74,8 +74,8 @@ def validate_locales() -> None:
         raise ValueError("shared locales must contain exactly five supported catalogs")
     english_keys = set(catalogs["en"])
     translation_keys = english_keys - {"_meta"}
-    if len(translation_keys) != 229:
-        raise ValueError(f"English locale must retain the 229-key baseline, found {len(translation_keys)}")
+    if len(translation_keys) != 260:
+        raise ValueError(f"English locale must retain the 260-key baseline, found {len(translation_keys)}")
     removed_keys = {"themes.fallout3.name", "themes.fallout3.description"}
     if removed_keys.intersection(translation_keys):
         raise ValueError("removed Fallout 3 locale keys must not be present")

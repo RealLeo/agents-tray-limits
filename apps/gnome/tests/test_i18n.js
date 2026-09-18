@@ -14,6 +14,12 @@ const CATALOG_LANGUAGES = ['en', 'ru', 'de', 'fr', 'zh-CN'];
 const PLACEHOLDER_PATTERN = /\{([A-Za-z][A-Za-z0-9_]*)\}/g;
 
 const REQUIRED_KEYS = [
+    'reset.action', 'reset.status', 'reset.ready', 'reset.noCredit',
+    'reset.aboveThreshold', 'reset.noData', 'reset.unsupported', 'reset.busy',
+    'reset.confirmTitle', 'reset.confirmAccount', 'reset.cancel', 'reset.confirm',
+    'reset.retry', 'reset.retryTitle', 'reset.retryAction', 'reset.accountChanged',
+    'reset.stateError', 'reset.uncertain', 'reset.success',
+    'reset.successRefreshFailed', 'reset.nothingToReset',
     'app.name', 'app.accessibleProfileValue',
     'status.good', 'status.worried', 'status.critical', 'status.dead',
     'panel.value',

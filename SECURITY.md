@@ -21,7 +21,14 @@ Please allow maintainers time to confirm, fix, and release a correction before p
 
 ## Security boundaries
 
-Agents Tray Limits starts the locally installed Codex CLI and reads account and rate-limit data from Codex App Server. The macOS application also installs an optional local Claude status-line collector. Reports are particularly useful when they concern:
+Agents Tray Limits starts the locally installed Codex CLI and reads account and rate-limit data from Codex App Server. The macOS application also installs an optional local Claude status-line collector.
+
+The GNOME extension can also consume one earned Codex reset after explicit
+confirmation. It binds the action to the confirmed account and profile, checks
+fresh limits, and persists an idempotency key before sending the request. Reset
+journals contain no credentials and use private directory/file permissions.
+
+Reports are particularly useful when they concern:
 
 - execution of an unintended binary or arguments;
 - unsafe handling of configured executable paths;
