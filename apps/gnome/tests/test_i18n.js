@@ -32,6 +32,7 @@ const REQUIRED_KEYS = [
     'menu.errorCode', 'menu.accountViaCodex', 'menu.noActiveLimits',
     'menu.noPrimary', 'menu.limits', 'menu.noWindow', 'menu.primary',
     'menu.secondary', 'menu.used', 'menu.remaining', 'menu.limitReached',
+    'menu.resetExpiry', 'menu.resetExpiryKnown', 'menu.resetExpiryUnknown',
     'menu.resetCredits', 'menu.activity', 'menu.tokenUnavailable', 'menu.today',
     'menu.last7', 'menu.lifetime', 'menu.peak', 'menu.streak', 'menu.tokens',
     'menu.days',

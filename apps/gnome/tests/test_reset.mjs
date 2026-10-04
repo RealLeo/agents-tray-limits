@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import {resetAvailability, resetResultMessage} from '../resetLogic.js';
+import {resetAvailability, resetCreditExpiry, resetResultMessage} from '../resetLogic.js';
 
 const now = Date.now() / 1000;
 const profile = {id: 'personal', label: 'Personal', provider: 'codex', configDir: '/isolated/personal'};
@@ -68,7 +68,7 @@ class FakeDialog {
 }
 const calls = [];
 const context = vm.createContext({
-    console, Date, Set, Map, resetAvailability, resetResultMessage,
+    console, Date, Set, Map, resetAvailability, resetCreditExpiry, resetResultMessage,
     Extension: class {}, PanelMenu: {Button: class {}}, GObject: {registerClass: cls => cls},
     ModalDialog: {ModalDialog: FakeDialog}, Dialog: {MessageDialogContent: class {constructor(options) {Object.assign(this, options);}}},
     Clutter: {KEY_Escape: 27},

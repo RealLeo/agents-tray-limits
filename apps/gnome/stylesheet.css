@@ -37,6 +37,19 @@
   font-size: 0.9em;
 }
 
+/* Keep expiry urgency readable over each theme's muted/message colors. */
+.agents-tray-limits-muted.agents-tray-limits-reset-expiry.warning,
+.agents-tray-limits-agents-amp-playlist-message.agents-tray-limits-reset-expiry.warning {
+  color: #f6d32d;
+  opacity: 1;
+}
+
+.agents-tray-limits-muted.agents-tray-limits-reset-expiry.critical,
+.agents-tray-limits-agents-amp-playlist-message.agents-tray-limits-reset-expiry.critical {
+  color: #ff7b82;
+  opacity: 1;
+}
+
 .agents-tray-limits-message,
 .agents-tray-limits-error {
   max-width: 310px;

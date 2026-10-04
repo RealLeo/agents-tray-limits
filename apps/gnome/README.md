@@ -215,6 +215,14 @@ The server decides which eligible windows are reset; the extension then reads th
 updated limits and remaining reset count. A failed follow-up read is reported
 separately from a successful reset.
 
+Each reset count also shows the nearest future credit expiry in the selected
+language and local time zone. The date turns yellow with 6–24 hours left and red
+with less than 6 hours left; its color updates every minute without rebuilding
+the menu. Incomplete credit details are labeled as the nearest known expiry, and
+count-only responses show that the expiry date is unavailable. Expired credits
+are excluded from date selection and trigger a fresh read, while the count
+always comes from the server.
+
 After an interrupted request, refresh the data and use RESET to retry the saved
 attempt. The same identifier is reused, including after a Shell restart, to avoid
 spending another credit. Reset attempts are never started by automatic refresh.

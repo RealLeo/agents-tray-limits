@@ -40,6 +40,27 @@ export function resetAvailability(profile, state, now, maxAge = 300) {
     return {enabled: true, reason: 'reset.ready', count};
 }
 
+// Count-only responses and capped/undated detail lists are valid API responses.
+// Never infer the available count from the detail list or from the local clock.
+export function resetCreditExpiry(credits, now) {
+    if (!Number.isInteger(credits?.availableCount) || credits.availableCount <= 0)
+        return null;
+    const dates = (Array.isArray(credits.credits) ? credits.credits : [])
+        .filter(credit => credit?.status === 'available' && credit.resetType === 'codexRateLimits')
+        .map(credit => credit.expiresAt)
+        .filter(date => Number.isFinite(date) && date > 0 && Number.isFinite(new Date(date * 1000).getTime()));
+    const future = dates.filter(date => date > now);
+    const expiresAt = future.length ? Math.min(...future) : null;
+    const elapsed = dates.filter(date => date <= now);
+    const remaining = expiresAt === null ? Infinity : expiresAt - now;
+    return {
+        expiresAt,
+        expiredAt: elapsed.length ? Math.max(...elapsed) : null,
+        partial: future.length !== credits.availableCount,
+        urgency: remaining < 6 * 3600 ? 'critical' : remaining <= 24 * 3600 ? 'warning' : 'normal',
+    };
+}
+
 export function resetResultMessage(payload) {
     if (!payload?.ok) {
         return ({

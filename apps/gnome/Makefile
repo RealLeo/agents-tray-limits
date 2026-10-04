@@ -27,6 +27,7 @@ check:
 	gjs -m tests/test_theme.js
 	gjs -m tests/test_profiles.js
 	node tests/test_reset.mjs
+	node tests/test_reset_expiry.mjs
 	python3 tools/check_css.py
 	python3 -m unittest discover -s tests -p 'test_*.py'
 	python3 $(REPO_ROOT)/tools/animation-rig/v18/verify_previews.py >/dev/null

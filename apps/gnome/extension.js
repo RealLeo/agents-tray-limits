@@ -14,7 +14,7 @@ import * as ModalDialog from 'resource:///org/gnome/shell/ui/modalDialog.js';
 import * as Dialog from 'resource:///org/gnome/shell/ui/dialog.js';
 
 import {createTranslator} from './i18n.js';
-import {resetAvailability, resetResultMessage} from './resetLogic.js';
+import {resetAvailability, resetCreditExpiry, resetResultMessage} from './resetLogic.js';
 import {
     parseProfilesDocument,
     providerName,
@@ -322,7 +322,10 @@ export default class AgentsTrayLimitsExtension extends Extension {
                 callback
             ),
             sourceId => GLib.Source.remove(sourceId),
-            () => this._updatePanelText()
+            () => {
+                this._updatePanelText();
+                this._updateResetExpiries();
+            }
         );
 
         this._reloadTheme();
@@ -347,6 +350,7 @@ export default class AgentsTrayLimitsExtension extends Extension {
             this._timeoutId = 0;
         }
         this._panelClock?.stop();
+        this._resetExpiryLabels = [];
 
         if (this._settings && this._settingsChangedId) {
             this._settings.disconnect(this._settingsChangedId);
@@ -416,6 +420,7 @@ export default class AgentsTrayLimitsExtension extends Extension {
             this._refresh();
         else
             this._buildDataMenu();
+        this._updateResetExpiries();
     }
 
     _onSettingChanged(key) {
@@ -1002,6 +1007,8 @@ export default class AgentsTrayLimitsExtension extends Extension {
                 this._addAgentsAmpPlaylistMessage(text);
             else
                 this._addMutedLine(text);
+            if (key === 'reset.ready')
+                this._addResetExpiry();
         }
     }
 
@@ -1348,6 +1355,7 @@ export default class AgentsTrayLimitsExtension extends Extension {
         this._agentsAmpMode = null;
         this._agentsAmpPlaylistContent = null;
         this._contentTarget = null;
+        this._resetExpiryLabels = [];
         this._indicator.menu.removeAll();
     }
 
@@ -2105,6 +2113,7 @@ export default class AgentsTrayLimitsExtension extends Extension {
         label.clutter_text.line_wrap = true;
         label.clutter_text.line_wrap_mode = Pango.WrapMode.WORD_CHAR;
         this._agentsAmpPlaylistContent.add_child(label);
+        return label;
     }
 
     _addAgentsAmpProfileRow(profile) {
@@ -2304,13 +2313,7 @@ export default class AgentsTrayLimitsExtension extends Extension {
             }
         }
 
-        const credits = Number(this._data?.rateLimits?.rateLimitResetCredits?.availableCount);
-        if (Number.isFinite(credits) && credits > 0) {
-            this._addAgentsAmpStatRow(
-                this._i18n.t('menu.resetCredits', {count: ''}).trim(),
-                formatInteger(credits, this._i18n)
-            );
-        }
+        this._addResetCredits();
 
         if (!this._settings.get_boolean('show-tokens'))
             return;
@@ -3141,13 +3144,80 @@ export default class AgentsTrayLimitsExtension extends Extension {
     }
 
     _addResetCredits() {
-        const credits = this._data?.rateLimits?.rateLimitResetCredits;
-        const count = Number(credits?.availableCount);
-        if (!Number.isFinite(count) || count <= 0)
+        if (this._activeProfile()?.provider !== 'codex')
             return;
-        this._addMutedLine(this._i18n.t('menu.resetCredits', {
-            count: formatInteger(count, this._i18n),
-        }));
+        const credits = this._data?.rateLimits?.rateLimitResetCredits;
+        const count = credits?.availableCount;
+        if (!Number.isInteger(count) || count <= 0)
+            return;
+        if (this._agentsAmpPlaylistContent) {
+            this._addAgentsAmpStatRow(
+                this._i18n.t('menu.resetCredits', {count: ''}).trim(),
+                formatInteger(count, this._i18n)
+            );
+        } else {
+            this._addMutedLine(this._i18n.t('menu.resetCredits', {
+                count: formatInteger(count, this._i18n),
+            }));
+        }
+        this._addResetExpiry();
+    }
+
+    _addResetExpiry() {
+        const expiry = resetCreditExpiry(this._data?.rateLimits?.rateLimitResetCredits, Date.now() / 1000);
+        if (!expiry)
+            return;
+        const label = this._agentsAmpPlaylistContent
+            ? this._addAgentsAmpPlaylistMessage('') : this._addMutedLine('');
+        label.add_style_class_name('agents-tray-limits-reset-expiry');
+        label.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
+        label.clutter_text.line_wrap = true;
+        label.clutter_text.line_wrap_mode = Pango.WrapMode.WORD_CHAR;
+        this._resetExpiryLabels.push(label);
+        this._paintResetExpiry(label, expiry);
+    }
+
+    _paintResetExpiry(label, expiry) {
+        label.visible = Boolean(expiry);
+        label.remove_style_class_name('warning');
+        label.remove_style_class_name('critical');
+        if (!expiry)
+            return;
+        label.text = expiry.expiresAt === null
+            ? this._i18n.t('menu.resetExpiryUnknown')
+            : this._i18n.t(expiry.partial ? 'menu.resetExpiryKnown' : 'menu.resetExpiry', {
+                date: this._i18n.formatDate(new Date(expiry.expiresAt * 1000), {
+                    year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+                }),
+            });
+        label.accessible_name = label.text;
+        if (expiry.urgency !== 'normal')
+            label.add_style_class_name(expiry.urgency);
+    }
+
+    _updateResetExpiries(now = Date.now() / 1000) {
+        const expiry = this._activeProfile()?.provider === 'codex'
+            ? resetCreditExpiry(this._data?.rateLimits?.rateLimitResetCredits, now) : null;
+        for (const label of this._resetExpiryLabels ?? [])
+            this._paintResetExpiry(label, expiry);
+
+        let refresh = false;
+        for (const profile of this._profiles) {
+            if (profile.provider !== 'codex')
+                continue;
+            const state = this._profileStates.get(profile.id);
+            const expiredAt = resetCreditExpiry(state?.data?.rateLimits?.rateLimitResetCredits, now)?.expiredAt;
+            if (!expiredAt || state.refreshing || state.queued || state.resetBusy || state.resetConfirming)
+                continue;
+            const key = `${state.data.resetAccount ?? ''}:${expiredAt}`;
+            // A stale response or read failure must not cause a request every minute.
+            if (state.resetExpiryRefreshKey === key)
+                continue;
+            state.resetExpiryRefreshKey = key;
+            refresh = true;
+        }
+        if (refresh)
+            this._refresh();
     }
 
     _addTokenUsage() {
@@ -3329,6 +3399,7 @@ export default class AgentsTrayLimitsExtension extends Extension {
         });
         this._preparePipboyLabel(label);
         this._addStaticActor(label);
+        return label;
     }
 
     _addSection(title = '') {

@@ -114,6 +114,8 @@ for raw in sys.stdin:
                 bucket['primary']['usedPercent'] = primary_used
                 bucket['secondary']['usedPercent'] = secondary_used
             response['result']['rateLimitResetCredits']['availableCount'] = credit_count
+            if 'FAKE_CODEX_CREDIT_DETAILS' in os.environ:
+                response['result']['rateLimitResetCredits']['credits'] = json.loads(os.environ['FAKE_CODEX_CREDIT_DETAILS'])
     elif method == 'account/rateLimitResetCredit/consume':
         reset_sent = True
         key = request.get('params', {}).get('idempotencyKey')
